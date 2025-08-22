@@ -25,7 +25,12 @@ use App\Traits\ActivationClass;
 
 class HomeController extends Controller
 {
-    use ActivationClass;
+     use ActivationClass;
+    /**
+     * Create a new controller instance.
+     *
+     * @return void
+     */
 
     /**
      * Show the application dashboard.
@@ -34,150 +39,168 @@ class HomeController extends Controller
      */
     public function index()
     {
-        $datas = DataSetting::with('translations')->where('type', 'admin_landing_page')->get();
+        $datas =  DataSetting::with('translations')->where('type','admin_landing_page')->get();
+        $data = [];
+        foreach ($datas as $key => $value) {
+            if(count($value->translations)>0){
+                $cred = [
+                    $value->key => $value->translations[0]['value'],
+                ];
+                array_push($data,$cred);
+            }else{
+                $cred = [
+                    $value->key => $value->value,
+                ];
+                array_push($data,$cred);
+            }
+            if(count($value->storage)>0){
+                $cred = [
+                    $value->key.'_storage' => $value->storage[0]['value'],
+                ];
+                array_push($data,$cred);
+            }else{
+                $cred = [
+                    $value->key.'_storage' => 'public',
+                ];
+                array_push($data,$cred);
+            }
+        }
         $settings = [];
-
-        foreach ($datas as $value) {
-            // Translations
-            $settings[$value->key] = count($value->translations) > 0 ? $value->translations[0]['value'] : $value->value;
-            // Storage
-            $settings[$value->key . '_storage'] = count($value->storage) > 0 ? $value->storage[0]['value'] : 'public';
+        foreach($data as $single_data){
+            foreach($single_data as $key=>$single_value){
+                $settings[$key] = $single_value;
+            }
         }
 
-        $business_settings = BusinessSetting::whereIn('key', ['business_name'])->pluck('value', 'key')->toArray();
-        $features = AdminFeature::latest()->where('status', 1)->get()->toArray();
-        $testimonials = AdminTestimonial::latest()->where('status', 1)->get()->toArray();
 
-        $header_floating_content = json_decode($settings['header_floating_content'] ?? '{}', true);
-        $header_image_content = json_decode($settings['header_image_content'] ?? '{}', true);
-        $zones = Zone::where('status', 1)->get(['id','name','display_name']);
+        $key=['business_name'];
+        $business_settings =  BusinessSetting::whereIn('key', $key)->pluck('value','key')->toArray();
 
-        // Helper functions for cleaner code
-        $get = fn($key, $default = null) => $settings[$key] ?? $default;
-        $getStorage = fn($key) => $settings[$key.'_storage'] ?? 'public';
-        $getUrl = fn($folder, $key) => Helpers::get_full_url($folder, $get($key), $getStorage($key));
+        $features = AdminFeature::latest()->where('status',1)->get()->toArray();
+        $testimonials = AdminTestimonial::latest()->where('status',1)->get()->toArray();
+
+        $header_floating_content= json_decode($settings['header_floating_content'] ?? null, true);
+        $header_image_content= json_decode($settings['header_image_content'] ?? null, true);
+
+        $zones= Zone::where('status',1)->get(['id','name','display_name']);
 
         $landing_data = [
-            'header_title' => $get('header_title', 'Why Stay Hungry !'),
-            'header_sub_title' => $get('header_sub_title', 'When you can order from'),
-            'header_tag_line' => $get('header_tag_line', 'Get Offers'),
-            'header_app_button_name' => $get('header_app_button_name', 'Order now'),
-            'header_app_button_status' => (int)$get('header_app_button_status', 0),
-            'header_button_redirect_link' => $get('header_button_content'),
+            'header_title'=>  $settings['header_title'] ??  'Why Stay Hungry !' ,
+            'header_sub_title'=> $settings['header_sub_title'] ?? 'When you can order from' ,
+            'header_tag_line'=> $settings['header_tag_line'] ?? 'Get Offers' ,
+            'header_app_button_name'=> $settings['header_app_button_name'] ?? 'Order now' ,
+            'header_app_button_status'=> $settings['header_app_button_status'] ?? 0 ,
+            'header_button_redirect_link'=>   $settings['header_button_content'] ?? null ,
 
-            'header_floating_total_order' => $header_floating_content['header_floating_total_order'] ?? null,
-            'header_floating_total_user' => $header_floating_content['header_floating_total_user'] ?? null,
-            'header_floating_total_reviews' => $header_floating_content['header_floating_total_reviews'] ?? null,
+            'header_floating_total_order'=>   $header_floating_content['header_floating_total_order'] ?? null ,
+            'header_floating_total_user'=>   $header_floating_content['header_floating_total_user'] ?? null ,
+            'header_floating_total_reviews'=>   $header_floating_content['header_floating_total_reviews'] ?? null ,
 
-            'header_content_image' => $header_image_content['header_content_image'] ?? 'double_screen_image.png',
-            'header_content_image_full_url' => Helpers::get_full_url(
-                'header_image',
-                $header_image_content['header_content_image'] ?? 'double_screen_image.png',
-                $header_image_content['header_content_image_storage'] ?? 'public'
-            ),
-            'header_bg_image' => $header_image_content['header_bg_image'] ?? null,
-            'header_bg_image_full_url' => Helpers::get_full_url(
-                'header_image',
-                $header_image_content['header_bg_image'] ?? null,
-                $header_image_content['header_bg_image_storage'] ?? 'public'
-            ),
+            'header_content_image'=>   $header_image_content['header_content_image'] ?? 'double_screen_image.png' ,
+            'header_content_image_full_url'=>   Helpers::get_full_url('header_image',$header_image_content['header_content_image'] ?? 'double_screen_image.png',$header_image_content['header_content_image_storage']??'public') ,
+            'header_bg_image'=>   $header_image_content['header_bg_image'] ?? null ,
+            'header_bg_image_full_url'=>   Helpers::get_full_url('header_image',$header_image_content['header_bg_image'] ?? null,$header_image_content['header_bg_image_storage']??'public') ,
 
-            'about_us_title' => $get('about_us_title'),
-            'about_us_sub_title' => $get('about_us_sub_title'),
-            'about_us_text' => $get('about_us_text'),
-            'about_us_app_button_name' => $get('about_us_app_button_name', 'More'),
-            'about_us_app_button_status' => (int)$get('about_us_app_button_status', 0),
-            'about_us_redirect_link' => $get('about_us_button_content'),
-            'about_us_image_content' => $get('about_us_image_content'),
-            'about_us_image_content_full_url' => $getUrl('about_us_image', 'about_us_image_content'),
+            'about_us_title'=>   $settings['about_us_title'] ?? null ,
+            'about_us_sub_title'=>   $settings['about_us_sub_title'] ?? null ,
+            'about_us_text'=>   $settings['about_us_text'] ?? null ,
+            'about_us_app_button_name'=>   $settings['about_us_app_button_name'] ?? 'More' ,
+            'about_us_app_button_status'=>   $settings['about_us_app_button_status'] ?? 0 ,
 
-            'why_choose_us_title' => $get('why_choose_us_title'),
-            'why_choose_us_sub_title' => $get('why_choose_us_sub_title'),
+            'about_us_redirect_link'=>   $settings['about_us_button_content'] ?? null ,
+            'about_us_image_content'=>   $settings['about_us_image_content'] ??  null ,
+            'about_us_image_content_full_url'=>   Helpers::get_full_url('about_us_image',$settings['about_us_image_content'] ??  null,$settings['about_us_image_content_storage']) ,
+
+            'why_choose_us_title'=>   $settings['why_choose_us_title']?? null ,
+            'why_choose_us_sub_title'=>   $settings['why_choose_us_sub_title'] ??  null ,
+            'why_choose_us_image_1'=>   $settings['why_choose_us_image_1'] ??  null ,
+            'why_choose_us_image_1_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_1'] ??  null,$settings['why_choose_us_image_1_storage']) ,
+            'why_choose_us_title_1'=>   $settings['why_choose_us_title_1'] ??  null ,
+            'why_choose_us_title_2'=>   $settings['why_choose_us_title_2'] ??  null ,
+            'why_choose_us_image_2'=>   $settings['why_choose_us_image_2'] ??  null ,
+            'why_choose_us_image_2_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_2'] ??  null,$settings['why_choose_us_image_2_storage']) ,
+            'why_choose_us_title_3'=>   $settings['why_choose_us_title_3'] ??  null ,
+            'why_choose_us_image_3'=>   $settings['why_choose_us_image_3'] ??  null ,
+            'why_choose_us_image_3_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_3'] ??  null,$settings['why_choose_us_image_3_storage']) ,
+            'why_choose_us_title_4'=>   $settings['why_choose_us_title_4'] ??  null ,
+            'why_choose_us_image_4'=>   $settings['why_choose_us_image_4'] ??  null ,
+            'why_choose_us_image_4_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_4'] ??  null,$settings['why_choose_us_image_4_storage']) ,
+
+
+            'feature_title'=>   $settings['feature_title'] ??  null ,
+            'feature_sub_title'=>   $settings['feature_sub_title'] ??  null ,
+            'features'=> $features ?? [] ,
+
+            'services_title'=>   $settings['services_title'] ??  null ,
+            'services_sub_title'=>   $settings['services_sub_title'] ??  null ,
+            'services_order_title_1'=>   $settings['services_order_title_1'] ??  null ,
+            'services_order_title_2'=>   $settings['services_order_title_2'] ??  null ,
+            'services_order_description_1'=>   $settings['services_order_description_1'] ??  null ,
+            'services_order_description_2'=>   $settings['services_order_description_2'] ??  null ,
+            'services_order_button_name'=>   $settings['services_order_button_name'] ??  null ,
+            'services_order_button_status'=>   $settings['services_order_button_status'] ??  null ,
+            'services_order_button_link'=>   $settings['services_order_button_link'] ??  null ,
+
+
+            'services_manage_restaurant_title_1'=>   $settings['services_manage_restaurant_title_1'] ??  null ,
+            'services_manage_restaurant_title_2'=>   $settings['services_manage_restaurant_title_2'] ??  null ,
+            'services_manage_restaurant_description_1'=>   $settings['services_manage_restaurant_description_1'] ??  null ,
+            'services_manage_restaurant_description_2'=>   $settings['services_manage_restaurant_description_2'] ??  null ,
+            'services_manage_restaurant_button_name'=>   $settings['services_manage_restaurant_button_name'] ??  null ,
+            'services_manage_restaurant_button_status'=>   $settings['services_manage_restaurant_button_status'] ??  null ,
+            'services_manage_restaurant_button_link'=>   $settings['services_manage_restaurant_button_link'] ??  null ,
+
+
+            'services_manage_delivery_title_1'=>   $settings['services_manage_delivery_title_1'] ??  null ,
+            'services_manage_delivery_title_2'=>   $settings['services_manage_delivery_title_2'] ??  null ,
+            'services_manage_delivery_description_1'=>   $settings['services_manage_delivery_description_1'] ??  null ,
+            'services_manage_delivery_description_2'=>   $settings['services_manage_delivery_description_2'] ??  null ,
+            'services_manage_delivery_button_name'=>   $settings['services_manage_delivery_button_name'] ??  null ,
+            'services_manage_delivery_button_status'=>   $settings['services_manage_delivery_button_status'] ??  null ,
+            'services_manage_delivery_button_link'=>   $settings['services_manage_delivery_button_link'] ??  null ,
+
+            'testimonial_title'=> $settings['testimonial_title'] ??  null ,
+            'testimonials'=> $testimonials ?? [] ,
+
+            'earn_money_title'=>   $settings['earn_money_title'] ??  null ,
+            'earn_money_sub_title'=>   $settings['earn_money_sub_title'] ??  null ,
+            'earn_money_reg_title'=>   $settings['earn_money_reg_title'] ??  null ,
+            'earn_money_restaurant_req_button_name'=>   $settings['earn_money_restaurant_req_button_name'] ??  null ,
+            'earn_money_restaurant_req_button_status'=>   $settings['earn_money_restaurant_req_button_status'] ??  null ,
+            'earn_money_delivety_man_req_button_name'=>   $settings['earn_money_delivety_man_req_button_name'] ??  null ,
+            'earn_money_delivery_man_req_button_status'=>   $settings['earn_money_delivery_man_req_button_status'] ??  0 ,
+            'earn_money_reg_image'=>   $settings['earn_money_reg_image'] ??  null ,
+            'earn_money_reg_image_full_url'=>   Helpers::get_full_url('earn_money',$settings['earn_money_reg_image'] ??  null,$settings['earn_money_reg_image_storage']) ,
+
+            'earn_money_delivery_req_button_link'=>   $settings['earn_money_delivery_man_req_button_link']??  null ,
+            'earn_money_restaurant_req_button_link'=>   $settings['earn_money_restaurant_req_button_link'] ??  null ,
+
+            'business_name' =>  $business_settings['business_name'] ?? 'Stackfood',
+
+            'available_zone_status' => (int)((isset($settings['available_zone_status'])) ? $settings['available_zone_status'] : 0),
+            'available_zone_title' => (isset($settings['available_zone_title'])) ? $settings['available_zone_title'] : null,
+            'available_zone_short_description' => (isset($settings['available_zone_short_description'])) ? $settings['available_zone_short_description'] : null,
+            'available_zone_image' => (isset($settings['available_zone_image'])) ? $settings['available_zone_image'] : null,
+            'available_zone_image_full_url' => Helpers::get_full_url('available_zone_image', (isset($settings['available_zone_image'])) ? $settings['available_zone_image'] : null, (isset($settings['available_zone_image_storage'])) ? $settings['available_zone_image_storage'] : 'public'),
+            'available_zone_list' => $zones ?? [],
+
         ];
 
-        // Handle why_choose_us images dynamically
-        for ($i = 1; $i <= 4; $i++) {
-            $landing_data["why_choose_us_image_{$i}"] = $get("why_choose_us_image_{$i}");
-            $landing_data["why_choose_us_image_{$i}_full_url"] = $getUrl('why_choose_us_image', "why_choose_us_image_{$i}");
-            $landing_data["why_choose_us_title_{$i}"] = $get("why_choose_us_title_{$i}");
-        }
-
-        // Features & services
-        $landing_data['feature_title'] = $get('feature_title');
-        $landing_data['feature_sub_title'] = $get('feature_sub_title');
-        $landing_data['features'] = $features;
-
-        $landing_data['services_title'] = $get('services_title');
-        $landing_data['services_sub_title'] = $get('services_sub_title');
-        for ($i = 1; $i <= 2; $i++) {
-            $landing_data["services_order_title_{$i}"] = $get("services_order_title_{$i}");
-            $landing_data["services_order_description_{$i}"] = $get("services_order_description_{$i}");
-        }
-        $landing_data['services_order_button_name'] = $get('services_order_button_name');
-        $landing_data['services_order_button_status'] = $get('services_order_button_status');
-        $landing_data['services_order_button_link'] = $get('services_order_button_link');
-
-        $landing_data['services_manage_restaurant_title_1'] = $get('services_manage_restaurant_title_1');
-        $landing_data['services_manage_restaurant_title_2'] = $get('services_manage_restaurant_title_2');
-        $landing_data['services_manage_restaurant_description_1'] = $get('services_manage_restaurant_description_1');
-        $landing_data['services_manage_restaurant_description_2'] = $get('services_manage_restaurant_description_2');
-        $landing_data['services_manage_restaurant_button_name'] = $get('services_manage_restaurant_button_name');
-        $landing_data['services_manage_restaurant_button_status'] = $get('services_manage_restaurant_button_status');
-        $landing_data['services_manage_restaurant_button_link'] = $get('services_manage_restaurant_button_link');
-
-        $landing_data['services_manage_delivery_title_1'] = $get('services_manage_delivery_title_1');
-        $landing_data['services_manage_delivery_title_2'] = $get('services_manage_delivery_title_2');
-        $landing_data['services_manage_delivery_description_1'] = $get('services_manage_delivery_description_1');
-        $landing_data['services_manage_delivery_description_2'] = $get('services_manage_delivery_description_2');
-        $landing_data['services_manage_delivery_button_name'] = $get('services_manage_delivery_button_name');
-        $landing_data['services_manage_delivery_button_status'] = $get('services_manage_delivery_button_status');
-        $landing_data['services_manage_delivery_button_link'] = $get('services_manage_delivery_button_link');
-
-        $landing_data['testimonial_title'] = $get('testimonial_title');
-        $landing_data['testimonials'] = $testimonials;
-
-        $landing_data['earn_money_title'] = $get('earn_money_title');
-        $landing_data['earn_money_sub_title'] = $get('earn_money_sub_title');
-        $landing_data['earn_money_reg_title'] = $get('earn_money_reg_title');
-        $landing_data['earn_money_restaurant_req_button_name'] = $get('earn_money_restaurant_req_button_name');
-        $landing_data['earn_money_restaurant_req_button_status'] = $get('earn_money_restaurant_req_button_status');
-        $landing_data['earn_money_delivety_man_req_button_name'] = $get('earn_money_delivety_man_req_button_name');
-        $landing_data['earn_money_delivery_man_req_button_status'] = $get('earn_money_delivery_man_req_button_status', 0);
-        $landing_data['earn_money_reg_image'] = $get('earn_money_reg_image');
-        $landing_data['earn_money_reg_image_full_url'] = $getUrl('earn_money', 'earn_money_reg_image');
-
-        $landing_data['earn_money_delivery_req_button_link'] = $get('earn_money_delivery_man_req_button_link');
-        $landing_data['earn_money_restaurant_req_button_link'] = $get('earn_money_restaurant_req_button_link');
-
-        $landing_data['business_name'] = $business_settings['business_name'] ?? 'Stackfood';
-
-        $landing_data['available_zone_status'] = (int)$get('available_zone_status', 0);
-        $landing_data['available_zone_title'] = $get('available_zone_title');
-        $landing_data['available_zone_short_description'] = $get('available_zone_short_description');
-        $landing_data['available_zone_image'] = $get('available_zone_image');
-        $landing_data['available_zone_image_full_url'] = $getUrl('available_zone_image', 'available_zone_image');
-        $landing_data['available_zone_list'] = $zones;
-
-        // Landing page configuration
         $config = Helpers::get_business_settings('landing_page');
         $landing_integration_type = Helpers::get_business_data('landing_integration_type');
         $redirect_url = Helpers::get_business_data('landing_page_custom_url');
 
-        $new_user = request()?->new_user ?? null;
-
-        if (isset($config) && $config) {
-            return view('home', compact('landing_data', 'new_user'));
-        } elseif ($landing_integration_type == 'file_upload' && File::exists('resources/views/layouts/landing/custom/index.blade.php')) {
+        if(isset($config) && $config){
+            $new_user= request()?->new_user ?? null ;
+            return view('home',compact('landing_data','new_user'));
+        }elseif($landing_integration_type == 'file_upload' && File::exists('resources/views/layouts/landing/custom/index.blade.php')){
             return view('layouts.landing.custom.index');
-        } elseif ($landing_integration_type == 'url') {
+        }elseif($landing_integration_type == 'url'){
             return redirect($redirect_url);
-        } else {
+        }else{
             abort(404);
         }
     }
-
-    // Other methods (terms_and_conditions, about_us, contact_us, privacy_policy, etc.) remain unchanged.
-
 
     public function terms_and_conditions(Request $request)
     {
