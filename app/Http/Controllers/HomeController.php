@@ -107,9 +107,13 @@ class HomeController extends Controller
             'about_us_app_button_name'=>   $settings['about_us_app_button_name'] ?? 'More' ,
             'about_us_app_button_status'=>   $settings['about_us_app_button_status'] ?? 0 ,
 
-            'about_us_redirect_link'=>   $settings['about_us_button_content'] ?? null ,
-            'about_us_image_content'=>   $settings['about_us_image_content'] ??  null ,
-            'about_us_image_content_full_url'=>   Helpers::get_full_url('about_us_image',$settings['about_us_image_content'] ??  null,$settings['about_us_image_content_storage']) ,
+           'about_us_redirect_link' => $settings['about_us_button_content'] ?? null,
+            'about_us_image_content' => $settings['about_us_image_content'] ?? null,
+            'about_us_image_content_full_url' => Helpers::get_full_url(
+                'about_us_image',
+                $settings['about_us_image_content'] ?? null,
+                $settings['about_us_image_content_storage'] ?? null
+            ),
 
             'why_choose_us_title'=>   $settings['why_choose_us_title']?? null ,
             'why_choose_us_sub_title'=>   $settings['why_choose_us_sub_title'] ??  null ,
