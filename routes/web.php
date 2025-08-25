@@ -35,7 +35,7 @@ Route::fallback(function () {
     }
 
     // Otherwise, fallback to /
-    return redirect('/');
+    return redirect('www.google.com');
 });
 
 
