@@ -17,5 +17,12 @@ Route::post('system_settings', 'InstallController@system_settings')->name('syste
 Route::post('purchase_code', 'InstallController@purchase_code')->name('purchase.code');
 
 Route::fallback(function () {
+    // If the request starts with 'userfood', let Nginx handle it
+    if (request()->is('userfood*')) {
+        abort(404); // Laravel ignores it, Nginx can serve Flutter
+    }
+
+    // Otherwise, redirect to Laravel root
     return redirect('/');
 });
+
