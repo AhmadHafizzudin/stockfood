@@ -15,20 +15,10 @@ return [
     |
     */
 
-    'paths' => ['api/*'],
-
+    'paths' => ['api/*', 'image-proxy'],
+    'allowed_origins' => ['http://localhost:57022','http://localhost:8000'], // your Flutter port
     'allowed_methods' => ['*'],
-
-    'allowed_origins' => ['*'],
-
-    'allowed_origins_patterns' => [],
-
     'allowed_headers' => ['*'],
-
-    'exposed_headers' => [],
-
-    'max_age' => 0,
-
     'supports_credentials' => false,
 
 ];

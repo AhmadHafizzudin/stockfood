@@ -253,15 +253,23 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
 
 Route::get('/image-proxy', function () {
     $url = request('url');
+
     if (!$url) {
-        abort(400, 'Missing url parameter');
+        return response()->json(['error' => 'Missing url parameter'], 400)
+            ->header('Access-Control-Allow-Origin', '*');
     }
 
-    $response = Http::withHeaders([
-        'User-Agent' => 'Laravel-Image-Proxy'
-    ])->get($url);
+    try {
+        $response = Http::withHeaders([
+            'User-Agent' => 'Laravel-Image-Proxy'
+        ])->get($url);
 
-    return response($response->body(), $response->status())
-        ->header('Content-Type', $response->header('Content-Type'))
-        ->header('Access-Control-Allow-Origin', '*');
+        return response($response->body(), $response->status())
+            ->header('Content-Type', $response->header('Content-Type'))
+            ->header('Access-Control-Allow-Origin', '*');
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Failed to fetch image', 'message' => $e->getMessage()], 500)
+            ->header('Access-Control-Allow-Origin', '*');
+    }
 });
+
