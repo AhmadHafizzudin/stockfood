@@ -28,6 +28,15 @@ use App\Http\Controllers\SslCommerzPaymentController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+Route::fallback(function () {
+    // If the path starts with "userfood", return 404 so Nginx can handle it
+    if (request()->is('userfood*')) {
+        abort(404);
+    }
+
+    // Otherwise, fallback to /
+    return redirect('/');
+});
 
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
 Route::get('/', 'HomeController@index')->name('home');
