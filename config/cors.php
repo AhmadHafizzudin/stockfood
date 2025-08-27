@@ -16,7 +16,10 @@ return [
     */
 
     'paths' => ['api/*', 'image-proxy'],
-    'allowed_origins' => ['*'], // your Flutter port
+    'allowed_origins' => [
+    'https://kawanku.app',
+    'https://www.kawanku.app'
+    ],
     'allowed_methods' => ['*'],
     'allowed_headers' => ['*'],
     'supports_credentials' => false,
