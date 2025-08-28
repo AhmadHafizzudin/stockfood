@@ -275,7 +275,7 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
 // });
 
 
-        Route::get('/image-proxy', function () {
+Route::get('/image-proxy', function () {
             $url = request('url');
 
             // Validate URL
@@ -312,5 +312,5 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
                     ->header('Access-Control-Allow-Origin', '*');
             }
         });
-
+        
 
