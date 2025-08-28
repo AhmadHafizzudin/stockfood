@@ -15,10 +15,17 @@ return [
     |
     */
 
+    // 'paths' => ['api/*', 'image-proxy'],
+    // 'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
+    // 'allowed_methods' => ['*'],
+    // 'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
+    // 'supports_credentials' => false,
+
     'paths' => ['api/*', 'image-proxy'],
-    'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
-    'allowed_methods' => ['*'],
-    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
+    'allowed_origins' => [],
+    'allowed_headers' => [],
+    'allowed_methods' => [],
     'supports_credentials' => false,
+
 
 ];
