@@ -16,7 +16,7 @@ return [
     */
 
     'paths' => ['api/*', 'image-proxy'],
-    'allowed_origins' => ['https://kawanku.app'],
+    'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
     'allowed_methods' => ['*'],
     'allowed_headers' => ['*'],
     'supports_credentials' => false,
