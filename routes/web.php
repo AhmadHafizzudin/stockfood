@@ -252,25 +252,65 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
     Route::post('apply', 'DeliveryManController@store')->name('store');
 });
 
-Route::get('/image-proxy', function () {
-    $url = request('url');
+// Route::get('/image-proxy', function () {
+//     $url = request('url');
 
-    if (!$url) {
-        return response()->json(['error' => 'Missing url parameter'], 400)
-            ->header('Access-Control-Allow-Origin', '*');
-    }
+//     if (!$url) {
+//         return response()->json(['error' => 'Missing url parameter'], 400)
+//             ->header('Access-Control-Allow-Origin', '*');
+//     }
 
-    try {
-        $response = Http::withHeaders([
-            'User-Agent' => 'Laravel-Image-Proxy'
-        ])->get($url);
+//     try {
+//         $response = Http::withHeaders([
+//             'User-Agent' => 'Laravel-Image-Proxy'
+//         ])->get($url);
 
-        return response($response->body(), $response->status())
-            ->header('Content-Type', $response->header('Content-Type'))
-            ->header('Access-Control-Allow-Origin', '*');
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Failed to fetch image', 'message' => $e->getMessage()], 500)
-            ->header('Access-Control-Allow-Origin', '*');
-    }
-});
+//         return response($response->body(), $response->status())
+//             ->header('Content-Type', $response->header('Content-Type'))
+//             ->header('Access-Control-Allow-Origin', '*');
+//     } catch (\Exception $e) {
+//         return response()->json(['error' => 'Failed to fetch image', 'message' => $e->getMessage()], 500)
+//             ->header('Access-Control-Allow-Origin', '*');
+//     }
+// });
+
+
+        Route::get('/image-proxy', function () {
+            $url = request('url');
+
+            // Validate URL
+            if (empty($url) || $url === 'null' || !filter_var($url, FILTER_VALIDATE_URL)) {
+                return response()->json(['error' => 'Invalid or missing url parameter'], 400)
+                    ->header('Access-Control-Allow-Origin', '*');
+            }
+
+            try {
+                // Fetch the image
+                $response = Http::withHeaders([
+                    'User-Agent' => 'Laravel-Image-Proxy'
+                ])->timeout(10)->get($url);
+
+                // Ensure the response is successful
+                if (!$response->successful()) {
+                    return response()->json([
+                        'error' => 'Failed to fetch image',
+                        'status' => $response->status()
+                    ], $response->status())
+                        ->header('Access-Control-Allow-Origin', '*');
+                }
+
+                // Return the image content with correct Content-Type
+                return response($response->body(), 200)
+                    ->header('Content-Type', $response->header('Content-Type', 'image/jpeg'))
+                    ->header('Access-Control-Allow-Origin', '*');
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'error' => 'Failed to fetch image',
+                    'message' => $e->getMessage()
+                ], 500)
+                    ->header('Access-Control-Allow-Origin', '*');
+            }
+        });
+
 
