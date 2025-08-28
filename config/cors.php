@@ -18,7 +18,7 @@ return [
     'paths' => ['api/*', 'image-proxy'],
     'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
     'allowed_methods' => ['*'],
-    'allowed_headers' => ['*'],
+    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
     'supports_credentials' => false,
 
 ];
