@@ -21,7 +21,7 @@ return [
     // 'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
     // 'supports_credentials' => false,
 
-    'paths' => ['api/*', 'image-proxy'],
+    'paths' => ['api/*'],
     'allowed_origins' => [],
     'allowed_headers' => [],
     'allowed_methods' => [],
