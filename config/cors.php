@@ -17,17 +17,17 @@ return [
 
     // 'paths' => ['api/*', 'image-proxy'],
 
-    // 'paths' => ['api/*'],
-    // 'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
-    // 'allowed_methods' => ['*'],
-    // 'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
-    // 'supports_credentials' => false,
-
     'paths' => ['api/*'],
-    'allowed_origins' => ['http://localhost:58128/'],
-    'allowed_headers' => [],
-    'allowed_methods' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
+    'allowed_origins' => ['https://kawanku.app','https://www.kawanku.app'],
+    'allowed_methods' => ['*'],
+    'allowed_headers' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
     'supports_credentials' => false,
+
+    // 'paths' => ['api/*'],
+    // 'allowed_origins' => ['http://localhost:58128/'],
+    // 'allowed_headers' => [],
+    // 'allowed_methods' => ['Content-Type', 'X-Requested-With', 'Authorization', 'zoneid'],
+    // 'supports_credentials' => false,
 
 
 ];
