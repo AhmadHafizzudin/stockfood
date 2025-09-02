@@ -6928,4 +6928,5 @@
   'All Restaurant Taxes' => 'All Restaurant Taxes',
   'all_Restaurants' => 'All Restaurants',
   'Restaurant_Tax_Reports' => 'Restaurant Tax Reports',
+  'landing_page_text_updated' => 'Landing page text updated',
 );
