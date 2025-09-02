@@ -101,7 +101,7 @@
                     </li>
                     @endif
                     <li>
-                        <a href="{{ route('about-us') }}"  class="@yield('about')" style="color: #000000 !important;">
+                        <a href="{{ route('about-us') }}"  class="@yield('about')">
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path

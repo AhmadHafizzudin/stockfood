@@ -60,10 +60,6 @@
     --shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
 
-.header-wrapper .menu li a {
-    color: #000 !important;
-}
-
 .btn-base {
     text-decoration: none;
     box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.2);
