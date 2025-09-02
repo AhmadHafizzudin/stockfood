@@ -1,41 +1,65 @@
 @import url("https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap");
 
 :root {
-    --base-1: #fb5607;
-    --base-rgb: 251, 86, 7;
-    --base-2: rgba(var(--base-rgb), 0.7);
+    /* === Yellow Accent === */
+    --base-1: #ffc107; /* Warm gold/yellow accent */
+    --base-rgb: 255, 193, 7;
+    --base-2: rgba(var(--base-rgb), 0.75);
     --base-3: rgba(var(--base-rgb), 0.5);
+
+    /* Radial background: stronger gold glow on darker gray */
     --radial-bg: radial-gradient(
         50% 50% at 50% 50%,
         rgba(var(--base-rgb), 0.3) 0%,
-        rgba(217, 217, 217, 0) 100%
+        rgba(200, 200, 200, 0.15) 100%
     );
-    --body-clr: #4b5d68;
-    --light-clr: #ded6ff;
-    --title-clr: #37322c;
-    --title-rgb: 0, 0, 0;
-    --body-bg: #fcfcfc;
-    --section-bg: #ffffff;
-    --section-light: #f3f9ff;
-    --dark-clr: #00447a;
-    --dark-rgb: 0, 68, 122;
+
+    /* === Body / Text Colors === */
+    --body-clr: #eaeaea; /* Light gray text for contrast */
+    --light-clr: #fff3cd; /* Softer light yellow highlight */
+    --title-clr: #f5f5f5; /* Very light title text */
+    --title-rgb: 245, 245, 245;
+
+    /* === Backgrounds (medium-dark gray, not pure black) === */
+    --body-bg: #2a2a2a; /* Medium-dark gray body */
+    --section-bg: #333333; /* Slightly darker section blocks */
+    --section-light: #3d3d3d; /* Lighter section backgrounds */
+
+    /* === Darker Accents === */
+    --dark-clr: #1f1f1f;
+    --dark-rgb: 31, 31, 31;
+
+    /* === Whites (keep bright for contrast) === */
     --white-clr: #ffffff;
     --white: #ffffff;
     --white-rgb: 255, 255, 255;
-    --primary-clr: #0c67a3;
-    --primary-rgb: 12, 103, 163;
-    --border: #e5e5e5;
-    --border-light: #e5e5e5;
-    --border-light-only: #e5e5e5;
-    --border-dark: #302474;
+
+    /* === Primary Theme (gold accent remains) === */
+    --primary-clr: #ffc107;
+    --primary-rgb: 255, 193, 7;
+
+    /* === Borders (goldish and subtle dark gray) === */
+    --border: rgba(255, 193, 7, 0.4);
+    --border-light: rgba(255, 193, 7, 0.2);
+    --border-light-only: #4a4a4a;
+    --border-dark: #2b2b2b;
     --border-dark-only: transparent;
+
+    /* === Fonts === */
     --heading-fonts: "Rubik", sans-serif;
     --body-fonts: "Rubik", sans-serif;
-    --base-shadow-sm: 0 0 1px var(--base-1), 0 0 3px var(--base-1);
-    --base-shadow: 0 0 1px var(--base-1), 0 0 2px var(--base-1),
-        0 0 3px var(--base-1), 0 0 5px var(--base-1), 0 0 7px var(--base-1);
-    --shadow: 0 0 5px rgba(var(--title-rgb), 0.2);
+
+    /* === Shadows (more visible glow on darker background) === */
+    --base-shadow-sm: 0 0 4px rgba(var(--base-rgb), 0.6);
+    --base-shadow:
+        0 0 2px rgba(var(--base-rgb), 0.7),
+        0 0 6px rgba(var(--base-rgb), 0.5),
+        0 0 12px rgba(var(--base-rgb), 0.3);
+
+    /* General shadow */
+    --shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
 }
+
 
 .btn-base {
     text-decoration: none;
