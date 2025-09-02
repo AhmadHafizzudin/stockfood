@@ -70,7 +70,7 @@
                 </div>
                 <ul class="menu">
                     <li>
-                        <a href="{{ route('home') }}" class="@yield('home')">
+                        <a href="{{ route('home') }}" class="menu-link @yield('home')">
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -86,7 +86,7 @@
                     @if ($landing_page_links['web_app_url_status'])
 
                     <li>
-                        <a href="{{ $landing_page_links['web_app_url'] }}">
+                        <a href="{{ $landing_page_links['web_app_url'] }}" class="menu-link">
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -101,7 +101,7 @@
                     </li>
                     @endif
                     <li>
-                        <a href="{{ route('about-us') }}"  class="@yield('about')">
+                        <a href="{{ route('about-us') }}"  class="menu-link @yield('about')">
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -115,7 +115,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('privacy-policy') }}"  class="@yield('privacy-policy')" >
+                        <a href="{{ route('privacy-policy') }}"  class="menu-link @yield('privacy-policy')" >
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
@@ -129,7 +129,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="{{ route('contact-us') }}" class="@yield('contact')">
+                        <a href="{{ route('contact-us') }}" class="menu-link @yield('contact')">
                             <svg width="25" height="8" viewBox="0 0 25 8" fill="none"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path
