@@ -255,6 +255,7 @@ class UpdateController extends Controller
             'paypal',
             'stripe',
             'senang_pay',
+            'zen_pay',
             'paystack',
             'flutterwave',
             'mercadopago',
@@ -304,6 +305,13 @@ class UpdateController extends Controller
                         'api_secret' => $decoded_value['razor_secret'],
                     ];
                 } elseif ($gateway == 'senang_pay') {
+                    $additional_data = [
+                        'status' => $decoded_value['status'],
+                        'callback_url' => null,
+                        'secret_key' => $decoded_value['secret_key'],
+                        'merchant_id' => $decoded_value['merchant_id'],
+                    ];
+                } elseif ($gateway == 'zen_pay') {
                     $additional_data = [
                         'status' => $decoded_value['status'],
                         'callback_url' => null,

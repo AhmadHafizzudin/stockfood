@@ -222,6 +222,45 @@
                         </div>
                     @endif
 
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('zen_pay'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body pt-1 h-70px">
+                                    @php($config=\App\CentralLogics\Helpers::get_business_settings('zen_pay'))
+                                    @php($user=\App\Models\User::where(['id'=>$order['user_id']])->first())
+                                    @php($secretkey = $config['secret_key'])
+                                    @php($data = new \stdClass())
+                                    @php($data->merchantId = $config['merchant_id'])
+                                    @php($data->detail = 'payment')
+                                    @php($data->order_id = $order->id)
+                                    @php($data->amount = $order->order_amount - $order->partially_paid_amount)
+                                    @php($data->name = $user->f_name.' '.$user->l_name)
+                                    @php($data->email = $user->email)
+                                    @php($data->phone = $user->phone)
+                                    @php($data->hashed_string = md5($secretkey . urldecode($data->detail) . urldecode($data->amount) . urldecode($data->order_id)))
+
+                                    <form name="order" method="post"
+                                          action="https://{{env('APP_MODE')=='live'?'app.senangpay.my':'sandbox.senangpay.my'}}/payment/{{$config['merchant_id']}}">
+                                        <input type="hidden" name="detail" value="{{$data->detail}}">
+                                        <input type="hidden" name="amount" value="{{$data->amount}}">
+                                        <input type="hidden" name="order_id" value="{{$data->order_id}}">
+                                        <input type="hidden" name="name" value="{{$data->name}}">
+                                        <input type="hidden" name="email" value="{{$data->email}}">
+                                        <input type="hidden" name="phone" value="{{$data->phone}}">
+                                        <input type="hidden" name="hash" value="{{$data->hashed_string}}">
+                                    </form>
+
+                                    <button class="btn btn-block click-if-alone" type="button"
+                                            onclick="{{\App\CentralLogics\Helpers::currency_code()=='MYR'?"document.order.submit()":"toastr.error('Your currency is not supported by Zen Pay.')"}}">
+                                        <img width="100"
+                                             src="{{dynamicAsset('public/assets/admin/img/senangpay.png')}}"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     @php($config=\App\CentralLogics\Helpers::get_business_settings('flutterwave'))
                     @if($config['status'])
                         <div class="col-md-6 mb-4 cursor-pointer">

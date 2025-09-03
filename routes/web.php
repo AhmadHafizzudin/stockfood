@@ -12,6 +12,7 @@ use App\Http\Controllers\FirebaseController;
 use App\Http\Controllers\PaystackController;
 use App\Http\Controllers\RazorPayController;
 use App\Http\Controllers\SenangPayController;
+use App\Http\Controllers\ZenPayController;
 use App\Http\Controllers\MercadoPagoController;
 use App\Http\Controllers\BkashPaymentController;
 use App\Http\Controllers\FlutterwaveV3Controller;
@@ -156,6 +157,12 @@ if (!$is_published) {
         Route::group(['prefix' => 'senang-pay', 'as' => 'senang-pay.'], function () {
             Route::get('pay', [SenangPayController::class, 'index']);
             Route::any('callback', [SenangPayController::class, 'return_senang_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        });
+
+        //ZEN-PAY
+        Route::group(['prefix' => 'zen-pay', 'as' => 'zen-pay.'], function () {
+            Route::get('pay', [ZenPayController::class, 'index']);
+            Route::any('callback', [ZenPayController::class, 'return_zen_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         });
 
         //PAYTM

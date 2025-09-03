@@ -1771,6 +1771,7 @@
   'paystack_callback_warning' => 'Paystack callback warning',
   'copy_callback' => 'Copy callback',
   'senang_pay' => 'Senang pay',
+  'zen_pay' => 'Zen pay',
   'flutterwave' => 'Flutterwave',
   'mercadopago' => 'Mercadopago',
   'paymob_accept' => 'Paymob accept',
