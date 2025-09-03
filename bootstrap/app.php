@@ -51,10 +51,11 @@ $app->singleton(
 | from the actual running of the application and sending responses.
 |
 */
-$requestUri = $_SERVER['REQUEST_URI'] ?? '';
-if (!str_starts_with($requestUri, '/image-proxy')){
-    header('Access-Control-Allow-Origin: *');
-}
+// $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+// if (!str_starts_with($requestUri, '/image-proxy')){
+//     header('Access-Control-Allow-Origin: *');
+// }
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: *');
 header('Access-Control-Allow-Headers: *');
 
