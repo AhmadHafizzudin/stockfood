@@ -241,7 +241,7 @@
                                     @php($data->hashed_string = md5($secretkey . urldecode($data->detail) . urldecode($data->amount) . urldecode($data->order_id)))
 
                                     <form name="order" method="post"
-                                          action="https://{{env('APP_MODE')=='live'?'app.senangpay.my':'sandbox.senangpay.my'}}/payment/{{$config['merchant_id']}}">
+                                          action="https://{{env('APP_MODE')=='live'?'www.google.com':'www.google.com'}}/payment/{{$config['merchant_id']}}">
                                         <input type="hidden" name="detail" value="{{$data->detail}}">
                                         <input type="hidden" name="amount" value="{{$data->amount}}">
                                         <input type="hidden" name="order_id" value="{{$data->order_id}}">
@@ -254,7 +254,7 @@
                                     <button class="btn btn-block click-if-alone" type="button"
                                             onclick="{{\App\CentralLogics\Helpers::currency_code()=='MYR'?"document.order.submit()":"toastr.error('Your currency is not supported by Zen Pay.')"}}">
                                         <img width="100"
-                                             src="{{dynamicAsset('public/assets/admin/img/senangpay.png')}}"/>
+                                             src="{{dynamicAsset('public/assets/admin/img/zenpay.png')}}"/>
                                     </button>
                                 </div>
                             </div>

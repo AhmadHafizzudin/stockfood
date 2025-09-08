@@ -14,6 +14,10 @@ use App\Models\Coupon;
 use App\Models\Refund;
 use App\Models\Review;
 use App\Mail\PlaceOrder;
+
+// add grabservices
+use App\Services\GrabService;
+
 use App\Models\DMReview;
 use App\Models\Restaurant;
 use App\Mail\RefundRequest;
@@ -1616,5 +1620,134 @@ class OrderController extends Controller
     public function getTaxFromCart(Request $request)
     {
         return $this->getCalculatedTax($request);
+    }
+
+    // grab services
+
+    public function place_order_grab(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'restaurant_id' => 'required|exists:restaurants,id',
+            'delivery_address_id' => 'required|integer',
+            'cart' => 'required|array'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Create Order in DB (same as normal place_order)
+            $order = Order::create([
+                'user_id' => $request->user()->id,
+                'restaurant_id' => $request->restaurant_id,
+                'delivery_address_id' => $request->delivery_address_id,
+                'order_amount' => $request->order_amount ?? 0,
+                'order_status' => 'pending',
+                'payment_status' => 'unpaid'
+            ]);
+
+            // 2. Call Grab API
+            $grab = new GrabService();
+            $grabResponse = $grab->createDelivery($order);
+
+            if (!$grabResponse['success']) {
+                DB::rollBack();
+                return response()->json([
+                    'errors' => [['message' => 'Grab API error: ' . $grabResponse['message']]]
+                ], 500);
+            }
+
+            // 3. Save Grab details to order
+            $order->grab_delivery_id = $grabResponse['data']['deliveryID'] ?? null;
+            $order->grab_fee = $grabResponse['data']['fee'] ?? 0;
+            $order->grab_status = $grabResponse['data']['status'] ?? 'pending';
+            $order->grab_tracking_url = $grabResponse['data']['tracking_url'] ?? null;
+            $order->grab_raw_response = json_encode($grabResponse['data']);
+            $order->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Order placed successfully with Grab.',
+                'order_id' => $order->id,
+                'grab_tracking_url' => $order->grab_tracking_url
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['errors' => [['message' => $e->getMessage()]]], 500);
+        }
+    }
+
+    /**
+     * Track Order via Grab
+     */
+    public function track_order_grab(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 422);
+        }
+
+        $order = Order::find($request->order_id);
+
+        if (!$order->grab_delivery_id) {
+            return response()->json(['errors' => [['message' => 'No Grab delivery found for this order.']]], 404);
+        }
+
+        $grab = new GrabService();
+        $grabResponse = $grab->getDeliveryStatus($order->grab_delivery_id);
+
+        if (!$grabResponse['success']) {
+            return response()->json(['errors' => [['message' => $grabResponse['message']]]], 500);
+        }
+
+        // Optionally update DB
+        $order->grab_status = $grabResponse['data']['status'];
+        $order->save();
+
+        return response()->json([
+            'order_id' => $order->id,
+            'grab_status' => $order->grab_status,
+            'grab_tracking_url' => $order->grab_tracking_url,
+            'grab_data' => $grabResponse['data']
+        ]);
+    }
+
+    /**
+     * Cancel Order via Grab
+     */
+    public function cancel_order_grab(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'order_id' => 'required|exists:orders,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => Helpers::error_processor($validator)], 422);
+        }
+
+        $order = Order::find($request->order_id);
+
+        if (!$order->grab_delivery_id) {
+            return response()->json(['errors' => [['message' => 'No Grab delivery found for this order.']]], 404);
+        }
+
+        $grab = new GrabService();
+        $grabResponse = $grab->cancelDelivery($order->grab_delivery_id);
+
+        if (!$grabResponse['success']) {
+            return response()->json(['errors' => [['message' => $grabResponse['message']]]], 500);
+        }
+
+        $order->grab_status = 'cancelled';
+        $order->save();
+
+        return response()->json(['message' => 'Grab delivery cancelled successfully.']);
     }
 }

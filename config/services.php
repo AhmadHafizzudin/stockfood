@@ -34,6 +34,13 @@ return [
     'maps_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'grab' => [
+    'client_id' => env('GRAB_CLIENT_ID'),
+    'client_secret' => env('GRAB_CLIENT_SECRET'),
+    'sandbox_url' => env('GRAB_SANDBOX_URL'),
+    'production_url' => env('GRAB_PRODUCTION_URL'),
+],
+
 
 
 

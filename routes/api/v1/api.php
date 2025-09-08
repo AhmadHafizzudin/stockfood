@@ -385,13 +385,21 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::get('order-subscription-list', 'OrderController@get_order_subscription_list');
             Route::get('running-orders', 'OrderController@get_running_orders');
             Route::get('details', 'OrderController@get_order_details');
-            Route::post('place', 'OrderController@place_order');
+            Route::post('place', 'OrderController@place_order_grab');
+            Route::get('track', 'OrderController@track_order_grab');
+            Route::put('cancel', 'OrderController@cancel_order_grab');
+
+            // add grabservices
+            // Route::post('place-grab', 'OrderController@place_order_grab');
+            // Route::get('track-grab', 'OrderController@track_order_grab');
+            // Route::put('cancel-grab', 'OrderController@cancel_order_grab');
+
             Route::post('get-Tax', 'OrderController@getTaxFromCart');
             Route::post('check-restaurant-validation', 'OrderController@check_restaurant_validation');
-            Route::put('cancel', 'OrderController@cancel_order');
+            
             Route::post('refund-request', 'OrderController@refund_request');
             Route::get('refund-reasons', 'OrderController@refund_reasons');
-            Route::get('track', 'OrderController@track_order');
+            
             Route::put('payment-method', 'OrderController@update_payment_method');
             Route::put('offline-payment', 'OrderController@offline_payment');
             Route::put('offline-payment-update', 'OrderController@update_offline_payment_info');

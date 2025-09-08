@@ -17,6 +17,22 @@ use Illuminate\Support\Facades\Mail;
 use App\Models\SubscriptionBillingAndRefundHistory;
 use Brian2694\Toastr\Facades\Toastr;
 
+/**
+ * ✅ Safe fallback: base_path() may not exist if helpers.php is loaded too early.
+ */
+if (!function_exists('base_path')) {
+    function base_path($path = '')
+    {
+        return __DIR__ . '/../' . ($path ? DIRECTORY_SEPARATOR . $path : '');
+    }
+}
+
+/**
+ * ✅ Define DOMAIN_POINTED_DIRECTORY safely
+ */
+if (!defined('DOMAIN_POINTED_DIRECTORY')) {
+    define('DOMAIN_POINTED_DIRECTORY', 'public'); // You can change this if needed
+}
 
 if (! function_exists('translate')) {
     function translate($key, $replace = [])
@@ -28,13 +44,14 @@ if (! function_exists('translate')) {
         $key = strpos($key, 'messages.') === 0 ? substr($key, 9) : $key;
         $local = app()->getLocale();
         try {
-            $lang_array = include(base_path('resources/lang/' . $local . '/messages.php'));
+            $lang_file = base_path('resources/lang/' . $local . '/messages.php');
+            $lang_array = file_exists($lang_file) ? include($lang_file) : [];
             $processed_key = ucfirst(str_replace('_', ' ', Helpers::remove_invalid_charcaters($key)));
 
             if (!array_key_exists($key, $lang_array)) {
                 $lang_array[$key] = $processed_key;
                 $str = "<?php return " . var_export($lang_array, true) . ";";
-                file_put_contents(base_path('resources/lang/' . $local . '/messages.php'), $str);
+                file_put_contents($lang_file, $str);
                 $result = $processed_key;
             } else {
                 $result = trans('messages.' . $key, $replace);
@@ -47,6 +64,11 @@ if (! function_exists('translate')) {
         return $result;
     }
 }
+
+// 🔽 KEEP YOUR OTHER FUNCTIONS THE SAME (order_place, order_failed, wallet_success, etc.)
+// I’m not touching them, just keeping the top part safe.
+
+
 
 if (! function_exists('order_place')) {
 
