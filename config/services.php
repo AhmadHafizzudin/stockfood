@@ -39,9 +39,12 @@ return [
     'client_secret' => env('GRAB_CLIENT_SECRET'),
     'sandbox_url' => env('GRAB_SANDBOX_URL'),
     'production_url' => env('GRAB_PRODUCTION_URL'),
-],
+    ],
 
-
-
+   'zenpay' => [
+    'biller_code' => env('ZENPAY_BILLER_CODE'),
+    'secret_key'  => env('ZENPAY_SECRET_KEY'),
+    'endpoint'    => env('ZENPAY_ENDPOINT'),
+    ],
 
 ];

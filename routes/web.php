@@ -160,10 +160,14 @@ if (!$is_published) {
         });
 
         //ZEN-PAY
-        Route::group(['prefix' => 'zen-pay', 'as' => 'zen-pay.'], function () {
-            Route::get('pay', [ZenPayController::class, 'index']);
-            Route::any('callback', [ZenPayController::class, 'return_zen_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
-        });
+        // Route::group(['prefix' => 'zen-pay', 'as' => 'zen-pay.'], function () {
+        //     Route::get('pay', [ZenPayController::class, 'index']);
+        //     Route::any('callback', [ZenPayController::class, 'return_zen_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+        // });
+        Route::get('/payment/zen-pay/pay', [ZenPayController::class, 'startPayment'])->name('web.zenpay.pay');
+        Route::get('/payment/zenpay/success', [ZenPayController::class, 'success'])->name('web.zenpay.success');
+        Route::get('/payment/zenpay/failed', [ZenPayController::class, 'failed'])->name('web.zenpay.failed');
+
 
         //PAYTM
         Route::group(['prefix' => 'paytm', 'as' => 'paytm.'], function () {

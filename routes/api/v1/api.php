@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\WebSockets\Handler\DMLocationSocketHandler;
 use BeyondCode\LaravelWebSockets\Facades\WebSocketsRouter;
-
+use App\Http\Controllers\ZenPayController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -348,6 +348,35 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::get('bonuses', 'WalletController@get_bonus');
             Route::post('add-fund', 'WalletController@add_fund');
         });
+
+        Route::get('/zenpay/test', function () {
+            return response()->json(['message' => 'ZenPay route is working']);
+        });
+
+        // Route::post('/zenpay/return', [ZenPayController::class, 'return_zen_pay'])->name('zenpay.return');
+        // Route::post('/zenpay/callback/{id}', [ZenPayController::class, 'return_zen_pay'])->name('zenpay.callback');
+        // Route::get('/order/{order}/pay', [ZenPayController::class, 'showPay'])->name('order.pay');
+        // // routes/api.php
+
+
+        // Route::group(['prefix' => 'zenpay', 'as' => 'zenpay.'], function () {
+        //     Route::post('/initiate', [ZenPayController::class, 'initiate'])->name('initiate');
+        //     Route::any('/callback', [ZenPayController::class, 'callback'])->name('callback');
+        // });
+
+        Route::prefix('v1')->group(function () {
+            // Flutter client calls this to create the ZenPay checkout session
+            Route::post('/zenpay/checkout', [ZenPayController::class, 'createCheckoutSession']);
+
+            // Webhook: ZenPay will POST here (public)
+            Route::post('/zenpay/webhook', [ZenPayController::class, 'webhook'])->name('api.zenpay.webhook');
+        });
+
+        Route::get('/customer/zenpay/test', [\App\Http\Controllers\ZenPayController::class, 'testSignature']);
+        
+
+
+
 
         Route::group(['prefix' => 'address'], function () {
             Route::get('list', 'CustomerController@address_list');
