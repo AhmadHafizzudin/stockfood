@@ -2,9 +2,8 @@
 
 @section('content')
 <div class="container">
-    <h3>Payment result</h3>
+    <h2>Payment Success</h2>
     <p>Status: {{ $status }}</p>
-    <p>Reference: {{ $payref }}</p>
-    <p><a href="{{ route('zenpay.pay') }}">Back</a></p>
+    <p>PayRef ID: {{ $payref }}</p>
 </div>
 @endsection
