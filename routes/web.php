@@ -159,16 +159,22 @@ if (!$is_published) {
             Route::any('callback', [SenangPayController::class, 'return_senang_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         });
 
-        //ZEN-PAY
-        // show a landing / payment form (optional)
-        Route::get('/payment/zen-pay', [ZenPayController::class, 'index'] ?? fn() => view('payment-views.zen-pay'))->name('zenpay.form');
-
-        Route::post('/payment/zen-pay/pay', [ZenPayController::class, 'pay'])->name('zenpay.pay');
-        Route::any('/payment/zen-pay/callback', [ZenPayController::class, 'callback'])
-            ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-            ->name('zenpay.callback');
-        Route::get('/payment/zen-pay/success', [ZenPayController::class, 'success'])->name('zenpay.success');
-        Route::get('/payment/zen-pay/failed', [ZenPayController::class, 'failed'])->name('zenpay.failed');
+        //zenpay - Hosted Payment Page Integration
+        Route::group(['prefix' => 'zenpay', 'as' => 'zenpay-'], function () {
+            // Create checkout session and redirect to hosted page
+            Route::post('checkout-create', [ZenPayController::class, 'createHostedPayment'])->name('checkout-create');
+            
+            // Callback from ZenPay (webhook)
+            Route::any('callback', [ZenPayController::class, 'callback'])
+                ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+                ->name('callback');
+                
+            // Success redirect from ZenPay
+            Route::get('success', [ZenPayController::class, 'success'])->name('success');
+            
+            // Failed redirect from ZenPay
+            Route::get('failed', [ZenPayController::class, 'failed'])->name('failed');
+        });
     
 
 

@@ -216,7 +216,7 @@ trait PaymentGatewayTrait
             "senang_pay" => [
                 "MYR" => "Malaysian Ringgit"
             ],
-            "zen_pay" => [
+            "zenpay" => [
                 "MYR" => "Malaysian Ringgit"
             ],
             "sixcash" => [

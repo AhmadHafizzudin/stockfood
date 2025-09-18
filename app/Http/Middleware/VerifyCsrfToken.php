@@ -27,10 +27,10 @@ class VerifyCsrfToken extends Middleware
         '/restaurant-panel/dashboard/order-stats',
 
         // ✅ ZenPay routes
-        'payment/zen-pay/pay',
-        'payment/zen-pay/success',
-        'payment/zen-pay/failed',
+        'payment/zenpay/pay',
+        'payment/zenpay/success',
+        'payment/zenpay/failed',
         'api/v1/zenpay/*',
-        'zen-pay/callback',
+        'zenpay/callback',
     ];
 }

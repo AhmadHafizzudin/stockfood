@@ -69,6 +69,7 @@ class WalletController extends Controller
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
         }
         $digital_payment = Helpers::get_business_settings('digital_payment');
+
         if($digital_payment['status'] == 0){
             return response()->json(['errors' => ['message' => 'digital_payment_is_disable']], 403);
         }

@@ -351,8 +351,8 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
         });
 
         Route::prefix('v1')->group(function () {
-            Route::post('/payment/zen-pay/session', [ZenPayController::class, 'createCheckoutSession']);
-            Route::post('/payment/zen-pay/webhook', [ZenPayController::class, 'webhook']); // public
+            Route::post('/payment/zenpay/session', [ZenPayController::class, 'createCheckoutSession']);
+            Route::post('/payment/zenpay/webhook', [ZenPayController::class, 'webhook']); // public
         });
 
         Route::group(['prefix' => 'address'], function () {

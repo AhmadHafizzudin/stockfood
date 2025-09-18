@@ -39,7 +39,6 @@ class LoginController extends Controller
     public function login($login_url)
     {
 
-
         $language = BusinessSetting::where('key', 'system_language')->first();
         if($language){
             foreach (json_decode($language->value, true) as $key => $data) {
@@ -51,7 +50,6 @@ class LoginController extends Controller
         }
         $data=array_column(DataSetting::whereIn('key',['restaurant_employee_login_url','restaurant_login_url','admin_employee_login_url','admin_login_url'
         ])->get(['key','value'])->toArray(), 'value', 'key');
-
 
         $loginTypes = [
             'admin' => 'admin_login_url',

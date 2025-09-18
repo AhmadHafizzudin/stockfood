@@ -47,7 +47,7 @@ trait Payment
             'liqpay' => 'payment/liqpay/pay',
             'razor_pay' => 'payment/razor-pay/pay',
             'senang_pay' => 'payment/senang-pay/pay',
-            'zen_pay' => 'payment/zen-pay/pay',
+            'zenpay' => 'payment/zenpay/pay',
             'mercadopago' => 'payment/mercadopago/pay',
             'bkash' => 'payment/bkash/make-payment',
             'paystack' => 'payment/paystack/pay',

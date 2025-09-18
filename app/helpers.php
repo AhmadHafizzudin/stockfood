@@ -341,3 +341,27 @@ if (!function_exists('getWebConfig')) {
     }
 
 }
+
+
+if (!function_exists('generateZenpaySignature')) {
+    /**
+     * Generate HMAC SHA256 signature for ZenPay API requests
+     * According to ZenPay documentation: https://staging.thezenpay.com/docs/v1/payment-operations/hosted-payment-page
+     * 
+     * @param array $requestData The prepared request data array
+     * @param string $secretKey The secret key for HMAC
+     * @return string The generated signature
+     */
+    function generateZenpaySignature(array $requestData, string $secretKey): string
+    {
+        // Sort parameters alphabetically by key
+        ksort($requestData);
+        
+        // Create query string for signature
+        $queryString = implode('&', array_map(function($key, $value) {
+            return $key . '=' . urlencode($value);
+        }, array_keys($requestData), array_values($requestData)));
+        
+        return hash_hmac('sha256', $queryString, $secretKey);
+    }
+} 

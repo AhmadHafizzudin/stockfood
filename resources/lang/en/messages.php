@@ -1771,7 +1771,7 @@
   'paystack_callback_warning' => 'Paystack callback warning',
   'copy_callback' => 'Copy callback',
   'senang_pay' => 'Senang pay',
-  'zen_pay' => 'Zen pay',
+  'zenpay' => 'Zenpay',
   'flutterwave' => 'Flutterwave',
   'mercadopago' => 'Mercadopago',
   'paymob_accept' => 'Paymob accept',
@@ -6930,4 +6930,5 @@
   'all_Restaurants' => 'All Restaurants',
   'Restaurant_Tax_Reports' => 'Restaurant Tax Reports',
   'landing_page_text_updated' => 'Landing page text updated',
+  'The selected gateway is invalid.' => 'The selected gateway is invalid.',
 );
