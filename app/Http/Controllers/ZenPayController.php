@@ -2,136 +2,116 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payment;
+use App\Models\User;
+use App\Traits\Processor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Models\PaymentRequest;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Routing\Controller;
+use Illuminate\Routing\Redirector;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Contracts\View\Factory;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Contracts\Foundation\Application;
 
 class ZenPayController extends Controller
 {
-    /**
-     * Create checkout session (called by Flutter or your Blade form).
-     */
-    public function createCheckoutSession(Request $request)
+    use Processor;
+
+    private $config_values;
+    private PaymentRequest $payment;
+    private $user;
+
+    public function __construct(PaymentRequest $payment, User $user)
+    {
+        $config = $this->payment_config('zen_pay', 'payment_config');
+
+        if (!is_null($config) && $config->mode == 'live') {
+            $this->config_values = json_decode($config->live_values);
+        } elseif (!is_null($config) && $config->mode == 'test') {
+            $this->config_values = json_decode($config->test_values);
+        }
+
+        $this->payment = $payment;
+        $this->user = $user;
+    }
+
+    public function index(Request $request): View|Factory|JsonResponse|Application
     {
         $validator = Validator::make($request->all(), [
-            'amount' => 'required|numeric|min:1',
-            'email'  => 'required|email',
+            'payment_id' => 'required|uuid'
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(
+                $this->response_formatter(GATEWAYS_DEFAULT_400, null, $this->error_processor($validator)),
+                400
+            );
         }
 
-        $orderId = 'ORDER' . time();
-
-        $requestData = [
-            "biller_code"  => config('services.zenpay.biller_code'),
-            "order_id"     => $orderId,
-            "email"        => $request->input('email'),
-            "amount"       => number_format($request->input('amount'), 2, '.', ''),
-            "callback_url" => config('services.zenpay.callback_url'),
-            "return_url"   => config('services.zenpay.return_url'),
-            "decline_url"  => config('services.zenpay.decline_url'),
-            "currency"     => "MYR",
-            "timestamp"    => now()->setTimezone('UTC')->toIso8601String(),
-        ];
-
-        // ✅ Signature must be HMAC of raw JSON body
-        $jsonBody  = json_encode($requestData, JSON_UNESCAPED_SLASHES);
-        $signature = hash_hmac('sha256', $jsonBody, config('services.zenpay.secret_key'));
-
-        Log::info('ZenPay Create Request', $requestData);
-        Log::info('ZenPay Signature', ['sig' => $signature]);
-
-        $response = Http::withHeaders([
-            'Content-Type' => 'application/json',
-            'X-Signature'  => $signature,
-        ])->post(config('services.zenpay.base_url').'/checkout-sessions', $requestData);
-
-        Log::info('ZenPay Response', $response->json());
-
-        if ($response->successful()) {
-            $data = $response->json();
-
-            // Save to DB
-            Payment::create([
-                'order_id'     => $orderId,
-                'email'        => $request->input('email'),
-                'amount'       => $request->input('amount'),
-                'status'       => 'pending',
-                'gateway'      => 'zenpay',
-                'raw_response' => $data,
-            ]);
-
-            return response()->json($data);
+        $payment_data = $this->payment::where(['id' => $request['payment_id'], 'is_paid' => 0])->first();
+        if (!$payment_data) {
+            return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
         }
 
-        return response()->json([
-            'error'   => $response->json(),
-            'message' => 'Failed to create ZenPay checkout session'
-        ], $response->status());
+        $payer = json_decode($payment_data['payer_information']);
+        $config = $this->config_values;
+        session()->put('payment_id', $payment_data->id);
+
+        // Prepare variables for Blade view
+        $secretKey = $config->secret_key ?? '';
+        $amount = number_format($payment_data->payment_amount, 2);
+        $attribute = $payment_data->attribute;
+        $attributeId = $payment_data->attribute_id;
+
+        $hashed_string = md5($secretKey . urldecode($attribute . $amount . $attributeId));
+
+        return view('payment-views.zen-pay', [
+            'config' => $config,
+            'payment_data' => $payment_data,
+            'payer' => $payer,
+            'hashed_string' => $hashed_string,
+            'amount' => $amount
+        ]);
     }
 
-    /**
-     * Webhook endpoint (ZenPay calls this).
-     */
-    public function webhook(Request $request)
+    public function return_zen_pay(Request $request): JsonResponse|Redirector|RedirectResponse|Application
     {
-        $rawPayload = $request->getContent();
-        $incomingSignature = $request->header('X-Signature', '');
+        $paymentId = session()->get('payment_id');
 
-        $computed = hash_hmac('sha256', $rawPayload, config('services.zenpay.secret_key'));
-
-        if (!hash_equals($computed, $incomingSignature)) {
-            Log::warning('ZenPay webhook signature mismatch', [
-                'incoming' => $incomingSignature,
-                'computed' => $computed,
+        if ($request['status_id'] == 1) {
+            $this->payment::where(['id' => $paymentId])->update([
+                'payment_method' => 'zen_pay',
+                'is_paid' => 1,
+                'transaction_id' => $request['transaction_id'],
             ]);
-            return response()->json(['message' => 'Invalid signature'], 401);
-        }
 
-        $payload = $request->json()->all();
-        Log::info('ZenPay Webhook Payload', $payload);
+            $data = $this->payment::where(['id' => $paymentId])->first();
 
-        $orderId = $payload['order_id'] ?? null;
-        $status  = $payload['status'] ?? null;
-        $payref  = $payload['payref_id'] ?? null;
-
-        if ($orderId) {
-            $payment = Payment::where('order_id', $orderId)->first();
-            if ($payment) {
-                $payment->update([
-                    'status'       => $status ?? $payment->status,
-                    'payref_id'    => $payref ?? $payment->payref_id,
-                    'raw_response' => $payload,
-                ]);
-            } else {
-                Log::warning('ZenPay webhook for unknown order', ['order_id' => $orderId]);
+            if (isset($data) && function_exists($data->success_hook)) {
+                call_user_func($data->success_hook, $data);
             }
+
+            return $this->payment_response($data, 'success');
         }
 
-        return response()->json(['message' => 'ok'], 200);
+        $payment_data = $this->payment::where(['id' => $paymentId])->first();
+
+        if (isset($payment_data) && function_exists($payment_data->failure_hook)) {
+            call_user_func($payment_data->failure_hook, $payment_data);
+        }
+
+        return $this->payment_response($payment_data, 'fail');
     }
 
-    /**
-     * Success return page.
-     */
-    public function success(Request $request)
+    public function healthCheck()
     {
-        $status = $request->query('status');
-        $payref = $request->query('payref_id');
-        return view('payment-views.zen-pay-success', compact('status', 'payref'));
+        $response = Http::withHeaders([
+            'x-api-key' => config('services.zenpay.api_key')
+        ])->get(config('services.zenpay.base_url') . '/v1/health');
+
+        return response()->json($response->json(), $response->status());
     }
 
-    /**
-     * Failed return page.
-     */
-    public function failed(Request $request)
-    {
-        $status = $request->query('status');
-        $payref = $request->query('payref_id');
-        return view('payment-views.zen-pay-failed', compact('status', 'payref'));
-    }
 }

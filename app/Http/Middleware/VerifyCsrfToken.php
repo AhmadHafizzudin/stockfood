@@ -9,9 +9,28 @@ class VerifyCsrfToken extends Middleware
     /**
      * The URIs that should be excluded from CSRF verification.
      *
-     * @var array
+     * @var array<int, string>
      */
     protected $except = [
-        '/restaurant-panel/store-token','/pay-via-ajax', '/success','/cancel','/fail','/ipn','/payment-razor/*','/paytm-response','/liqpay-callback','/paytm-response','/mercadopago/make-payment','/flutterwave-pay', '/admin/message/store*', '/restaurant-panel/dashboard/order-stats','zen-pay/callback'
+        '/restaurant-panel/store-token',
+        '/pay-via-ajax',
+        '/success',
+        '/cancel',
+        '/fail',
+        '/ipn',
+        '/payment-razor/*',
+        '/paytm-response',
+        '/liqpay-callback',
+        '/mercadopago/make-payment',
+        '/flutterwave-pay',
+        '/admin/message/store*',
+        '/restaurant-panel/dashboard/order-stats',
+
+        // ✅ ZenPay routes
+        'payment/zen-pay/pay',
+        'payment/zen-pay/success',
+        'payment/zen-pay/failed',
+        'api/v1/zenpay/*',
+        'zen-pay/callback',
     ];
 }

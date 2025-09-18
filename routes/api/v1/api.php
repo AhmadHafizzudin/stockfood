@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\WebSockets\Handler\DMLocationSocketHandler;
 use BeyondCode\LaravelWebSockets\Facades\WebSocketsRouter;
 use App\Http\Controllers\ZenPayController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -349,18 +350,10 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::post('add-fund', 'WalletController@add_fund');
         });
 
-        Route::get('/zenpay/test', function () {
-            return response()->json(['message' => 'ZenPay route is working']);
+        Route::prefix('v1')->group(function () {
+            Route::post('/payment/zen-pay/session', [ZenPayController::class, 'createCheckoutSession']);
+            Route::post('/payment/zen-pay/webhook', [ZenPayController::class, 'webhook']); // public
         });
-
-        Route::prefix('v1/zenpay')->group(function () {
-            Route::post('/checkout', [ZenPayController::class, 'createCheckoutSession']);
-            Route::post('/webhook', [ZenPayController::class, 'webhook'])->name('api.zenpay.webhook');
-        });
-
-
-
-
 
         Route::group(['prefix' => 'address'], function () {
             Route::get('list', 'CustomerController@address_list');

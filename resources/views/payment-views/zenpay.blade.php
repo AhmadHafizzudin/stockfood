@@ -4,21 +4,17 @@
 <div class="container">
     <h2>Pay with ZenPay (Hosted)</h2>
 
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
-    <form method="POST" action="{{ route('zenpay.pay') }}">
+    <form method="POST" action="{{ url('api/v1/zenpay/checkout') }}">
         @csrf
 
         <div class="mb-3">
             <label class="form-label">Email</label>
-            <input name="email" type="email" class="form-control" required value="{{ old('email') }}">
+            <input name="email" type="email" class="form-control" required>
         </div>
 
         <div class="mb-3">
             <label class="form-label">Amount (MYR)</label>
-            <input name="amount" type="number" step="0.01" class="form-control" required value="{{ old('amount', '10.00') }}">
+            <input name="amount" type="number" step="0.01" class="form-control" required>
         </div>
 
         <button class="btn btn-primary">Pay (Hosted)</button>

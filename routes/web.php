@@ -160,11 +160,16 @@ if (!$is_published) {
         });
 
         //ZEN-PAY
-        Route::get('/payment/zenpay/success', [ZenPayController::class, 'success'])->name('web.zenpay.success');
-        Route::get('/payment/zenpay/failed', [ZenPayController::class, 'failed'])->name('web.zenpay.failed');
+        // show a landing / payment form (optional)
+        Route::get('/payment/zen-pay', [ZenPayController::class, 'index'] ?? fn() => view('payment-views.zen-pay'))->name('zenpay.form');
 
-
-        
+        Route::post('/payment/zen-pay/pay', [ZenPayController::class, 'pay'])->name('zenpay.pay');
+        Route::any('/payment/zen-pay/callback', [ZenPayController::class, 'callback'])
+            ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+            ->name('zenpay.callback');
+        Route::get('/payment/zen-pay/success', [ZenPayController::class, 'success'])->name('zenpay.success');
+        Route::get('/payment/zen-pay/failed', [ZenPayController::class, 'failed'])->name('zenpay.failed');
+    
 
 
         //PAYTM

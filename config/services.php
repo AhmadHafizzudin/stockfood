@@ -41,13 +41,13 @@ return [
     'production_url' => env('GRAB_PRODUCTION_URL'),
     ],
 
-   'zenpay' => [
-    'base_url'     => env('ZENPAY_BASE_URL'),
-    'biller_code'  => env('ZENPAY_BILLER_CODE'),
-    'secret_key'   => env('ZENPAY_SECRET_KEY'),
-    'callback_url' => env('ZENPAY_CALLBACK_URL'),
-    'return_url'   => env('ZENPAY_RETURN_URL'),
-    'decline_url'  => env('ZENPAY_DECLINE_URL'),
+    'zenpay' => [
+        'base_url'     => env('ZENPAY_BASE_URL'),
+        'biller_code'  => env('ZENPAY_BILLER_CODE'),
+        'secret_key'   => env('ZENPAY_SECRET_KEY'),
+        'callback_url' => env('ZENPAY_CALLBACK_URL'),
+        'return_url'   => env('ZENPAY_RETURN_URL'),
+        'decline_url'  => env('ZENPAY_DECLINE_URL'),
     ],
 
 ];
