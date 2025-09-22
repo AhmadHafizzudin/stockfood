@@ -161,6 +161,9 @@ if (!$is_published) {
 
         //zenpay - Hosted Payment Page Integration
         Route::group(['prefix' => 'zenpay', 'as' => 'zenpay-'], function () {
+            // Main payment route that Payment::generate_link() expects
+            Route::get('pay', [ZenPayController::class, 'index'])->name('pay');
+            
             // Create checkout session and redirect to hosted page
             Route::post('checkout-create', [ZenPayController::class, 'createHostedPayment'])->name('checkout-create');
             
@@ -175,9 +178,6 @@ if (!$is_published) {
             // Failed redirect from ZenPay
             Route::get('failed', [ZenPayController::class, 'failed'])->name('failed');
         });
-
-        // Add the missing route that Payment::generate_link() expects
-        Route::get('payment/zenpay/pay', [ZenPayController::class, 'index'])->name('zenpay.pay');
     
 
 
