@@ -175,6 +175,9 @@ if (!$is_published) {
             // Failed redirect from ZenPay
             Route::get('failed', [ZenPayController::class, 'failed'])->name('failed');
         });
+
+        // Add the missing route that Payment::generate_link() expects
+        Route::get('payment/zenpay/pay', [ZenPayController::class, 'index'])->name('zenpay.pay');
     
 
 
