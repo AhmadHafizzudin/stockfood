@@ -190,7 +190,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
         Route::group(['prefix' => 'restaurant', 'as' => 'restaurant.','middleware'=>['module:restaurant']], function () {
             Route::get('get-restaurants-data/{restaurant}', 'VendorController@get_restaurant_data')->name('get-restaurants-data');
             Route::get('restaurant-filter/{id}', 'VendorController@restaurant_filter')->name('restaurantfilter');
-            Route::get('get-account-data/{restaurant}', 'VendorController@get_account_data')->name('restaurantfilter');
+            Route::get('get-account-data/{restaurant}', 'VendorController@get_account_data')->name('get-account-data');
             Route::get('get-addons', 'VendorController@get_addons')->name('get_addons');
             Route::group(['middleware' => ['module:restaurant']], function () {
                 Route::get('update-application/{id}/{status}', 'VendorController@update_application')->name('application');
@@ -396,9 +396,9 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
             Route::post('update-setup', 'BusinessSettingsController@business_setup')->name('update-setup');
             Route::get('theme-settings', 'BusinessSettingsController@theme_settings')->name('theme-settings');
             Route::POST('theme-settings-update', 'BusinessSettingsController@update_theme_settings')->name('theme-settings-update');
-            Route::get('app-settings', 'BusinessSettingsController@app_settings')->name('app-settings');
+            Route::get('app-settings', 'BusinessSettingsController@app_settings')->name('app-settings-get');
             Route::POST('app-settings', 'BusinessSettingsController@update_app_settings')->name('app-settings');
-            Route::get('landing-page-settings/{tab?}', 'BusinessSettingsController@landing_page_settings')->name('landing-page-settings');
+            Route::get('landing-page-settings/{tab?}', 'BusinessSettingsController@landing_page_settings')->name('landing-page-settings-get');
             Route::POST('landing-page-settings/{tab}', 'BusinessSettingsController@update_landing_page_settings')->name('landing-page-settings');
             Route::DELETE('landing-page-settings/{tab}/{key}', 'BusinessSettingsController@delete_landing_page_settings')->name('landing-page-settings-delete');
             Route::get('notification-setup', 'BusinessSettingsController@notification_setup')->name('notification_setup');
@@ -464,7 +464,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
             Route::get('site_direction', 'BusinessSettingsController@site_direction')->name('site_direction');
 
-            Route::get('email-setup/{type}/{tab?}', 'BusinessSettingsController@email_index')->name('email-setup');
+            Route::get('email-setup/{type}/{tab?}', 'BusinessSettingsController@email_index')->name('email-setup-get');
             Route::POST('email-setup/{type}/{tab?}', 'BusinessSettingsController@update_email_index')->name('email-setup');
             Route::get('email-status/{type}/{tab}/{status}', 'BusinessSettingsController@update_email_status')->name('email-status');
             // Offline payment Methods
@@ -595,7 +595,7 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
         Route::group(['prefix' => 'delivery-man', 'as' => 'delivery-man.'], function () {
             Route::get('get-deliverymen', 'DeliveryManController@get_deliverymen')->name('get-deliverymen');
-            Route::get('get-account-data/{deliveryman}', 'DeliveryManController@get_account_data')->name('restaurantfilter');
+            Route::get('get-account-data/{deliveryman}', 'DeliveryManController@get_account_data')->name('get-account-data');
             Route::group(['middleware' => ['module:deliveryman']], function () {
                 Route::get('add', 'DeliveryManController@index')->name('add');
                 Route::post('store', 'DeliveryManController@store')->name('store');

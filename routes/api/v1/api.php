@@ -114,10 +114,10 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::put('send-order-otp', 'DeliverymanController@send_order_otp');
 
 
-            Route::post('make-collected-cash-payment', 'DeliverymanController@make_payment')->name('make_payment');
-            Route::post('make-wallet-adjustment', 'DeliverymanController@make_wallet_adjustment')->name('make_wallet_adjustment');
+            Route::post('make-collected-cash-payment', 'DeliverymanController@make_payment')->name('deliveryman_make_payment');
+            Route::post('make-wallet-adjustment', 'DeliverymanController@make_wallet_adjustment')->name('deliveryman_make_wallet_adjustment');
 
-            Route::get('wallet-payment-list', 'DeliverymanController@wallet_payment_list')->name('wallet_payment_list');
+            Route::get('wallet-payment-list', 'DeliverymanController@wallet_payment_list')->name('deliveryman_wallet_payment_list');
             Route::get('wallet-provided-earning-list', 'DeliverymanController@wallet_provided_earning_list')->name('wallet_provided_earning_list');
         });
     });
@@ -145,10 +145,10 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
 
         Route::put('update-announcment', 'VendorController@update_announcment');
 
-        Route::post('make-collected-cash-payment', 'VendorController@make_payment')->name('make_payment');
-        Route::post('make-wallet-adjustment', 'VendorController@make_wallet_adjustment')->name('make_wallet_adjustment');
+        Route::post('make-collected-cash-payment', 'VendorController@make_payment')->name('vendor_make_payment');
+        Route::post('make-wallet-adjustment', 'VendorController@make_wallet_adjustment')->name('vendor_make_wallet_adjustment');
 
-        Route::get('wallet-payment-list', 'VendorController@wallet_payment_list')->name('wallet_payment_list');
+        Route::get('wallet-payment-list', 'VendorController@wallet_payment_list')->name('vendor_wallet_payment_list');
 
         //Report
         Route::get('get-expense', 'ReportController@expense_report');

@@ -1562,7 +1562,7 @@ $order_sch = Cache::rememberForever('order_scheduled_stats', function () {
                 <li
                     class="navbar-vertical-aside-has-menu {{ Request::is('admin/business-settings/email-setup*') ? 'active' : '' }}">
                     <a class="nav-link "
-                        href="{{ route('admin.business-settings.email-setup', ['admin', 'forgot-password']) }}"
+                        href="{{ route('admin.business-settings.email-setup-get', ['admin', 'forgot-password']) }}"
                         title="{{ translate('messages.email_template') }}">
                         <span class="tio-email nav-icon"></span>
                         <span class="text-truncate">{{ translate('messages.email_template') }}</span>
@@ -1749,7 +1749,7 @@ $order_sch = Cache::rememberForever('order_scheduled_stats', function () {
 
                 <li
                     class="navbar-vertical-aside-has-menu {{ Request::is('admin/business-settings/app-settings*') ? 'active' : '' }}">
-                    <a class="nav-link " href="{{ route('admin.business-settings.app-settings') }}"
+                    <a class="nav-link " href="{{ route('admin.business-settings.app-settings-get') }}"
                         title="{{ translate('messages.App_&_Web_Settings') }}">
                         <span class="tio-android nav-icon"></span>
                         <span class="text-truncate">{{ translate('messages.App_&_Web_Settings') }}</span>
