@@ -173,10 +173,10 @@ if (!$is_published) {
                 ->name('callback');
                 
             // Success redirect from ZenPay
-            Route::get('success', [ZenPayController::class, 'success'])->name('success');
+            Route::any('success', [ZenPayController::class, 'success'])->name('success');
             
             // Failed redirect from ZenPay
-            Route::get('failed', [ZenPayController::class, 'failed'])->name('failed');
+            Route::any('failed', [ZenPayController::class, 'failed'])->name('failed');
         });
     
 
