@@ -58,7 +58,7 @@ class ZenPayController extends Controller
             return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
         }
 
-        return $this->createHostedPayment($payment_data);
+        return $this->createHostedPayment(null, $payment_data);
     }
 
     /**
