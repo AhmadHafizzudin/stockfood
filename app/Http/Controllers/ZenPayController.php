@@ -14,6 +14,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Contracts\Foundation\Application;
 use App\CentralLogics\Helpers;
@@ -188,35 +189,52 @@ class ZenPayController extends Controller
      */
     public function callback(Request $request)
     {
-        $paymentId = session()->get('payment_id');
-        $orderId = session()->get('order_id');
+        // Log the incoming callback for debugging
+        Log::info('ZenPay Callback Received:', $request->all());
         
-        // Verify callback signature if needed
-        // $this->verifyCallbackSignature($request);
+        // Verify callback signature
+        if (!$this->verifyCallbackSignature($request)) {
+            Log::error('ZenPay Callback: Invalid signature');
+            return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 400);
+        }
         
-        $status = $request->input('status'); // success/failed based on ZenPay documentation
-        $transactionId = $request->input('payref_id');
+        $status = $request->input('status'); // "SUCCESSFUL" or "UNSUCCESSFUL"
+        $statusCode = $request->input('status_code'); // "00" for success
+        $orderId = $request->input('order_id'); // Merchant's order reference
+        $amount = $request->input('amount'); // Transaction amount
+        $payrefId = $request->input('payref_id'); // Payment reference ID from ZenPay
+        $fpxId = $request->input('fpx_id'); // FPX transaction identifier
+        $bankId = $request->input('bank_id'); // Bank identifier
+        $trxDatetime = $request->input('trx_datetime'); // Transaction timestamp
         
-        if ($status === 'success') {
+        // Check if payment is successful according to ZenPay documentation
+        $isSuccessful = ($status === 'SUCCESSFUL' && $statusCode === '00');
+        
+        if ($isSuccessful) {
             // Handle order-based payment (from payment-view)
-            if ($orderId) {
+            $sessionOrderId = session()->get('order_id');
+            if ($sessionOrderId && $sessionOrderId == $orderId) {
                 $order = Order::find($orderId);
                 if ($order) {
                     $order->update([
                         'payment_status' => 'paid',
                         'payment_method' => 'zenpay',
-                        'transaction_reference' => $transactionId,
+                        'transaction_reference' => $payrefId,
                     ]);
+                    
+                    Log::info("ZenPay Callback: Order {$orderId} marked as paid");
+                    session()->forget('order_id');
                 }
                 return response()->json(['status' => 'success'], 200);
             }
             
             // Handle payment gateway flow
+            $paymentId = session()->get('payment_id');
             if ($paymentId) {
                 $this->payment::where(['id' => $paymentId])->update([
                     'payment_method' => 'zenpay',
                     'is_paid' => 1,
-                    'transaction_id' => $transactionId,
+                    'transaction_id' => $payrefId,
                 ]);
 
                 $data = $this->payment::where(['id' => $paymentId])->first();
@@ -224,8 +242,12 @@ class ZenPayController extends Controller
                 if (isset($data) && function_exists($data->success_hook)) {
                     call_user_func($data->success_hook, $data);
                 }
+                
+                Log::info("ZenPay Callback: Payment {$paymentId} marked as paid");
                 return response()->json(['status' => 'success'], 200);
             }
+        } else {
+            Log::warning("ZenPay Callback: Payment failed for order {$orderId}. Status: {$status}, Code: {$statusCode}");
         }
 
         return response()->json(['status' => 'failed'], 200);
@@ -285,6 +307,45 @@ class ZenPayController extends Controller
         }
         
         return redirect()->route('payment-fail')->with('error', 'Payment failed');
+    }
+
+    /**
+     * Verify ZenPay callback signature
+     */
+    private function verifyCallbackSignature(Request $request): bool
+    {
+        $signature = $request->header('X-Signature');
+        
+        if (!$signature) {
+            Log::error('ZenPay Callback: Missing X-Signature header');
+            return false;
+        }
+        
+        // Get the secret key from config
+        $config = $this->config_values ?? null;
+        if (!$config || !isset($config->secret_key)) {
+            Log::error('ZenPay Callback: Missing secret key configuration');
+            return false;
+        }
+        
+        // Get all callback parameters
+        $callbackData = $request->all();
+        
+        // Generate signature using the same method as in the API call
+        $expectedSignature = generateZenpaySignature($callbackData, $config->secret_key);
+        
+        // Compare signatures
+        $isValid = hash_equals($expectedSignature, $signature);
+        
+        if (!$isValid) {
+            Log::error('ZenPay Callback: Signature mismatch', [
+                'expected' => $expectedSignature,
+                'received' => $signature,
+                'data' => $callbackData
+            ]);
+        }
+        
+        return $isValid;
     }
 
     public function healthCheck()
