@@ -335,5 +335,6 @@ Route::get('/image-proxy', function () {
                     ->header('Access-Control-Allow-Origin', '*');
             }
         });
+
         
 

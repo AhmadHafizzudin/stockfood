@@ -462,4 +462,6 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
     Route::get('offline_payment_method_list', 'ConfigController@offline_payment_method_list');
 });
 
+
+
 WebSocketsRouter::webSocket('/delivery-man/live-location', DMLocationSocketHandler::class);
