@@ -49,6 +49,9 @@ class GrabService
         }
 
         try {
+            // Parse delivery address from JSON
+            $deliveryAddress = json_decode($order->delivery_address, true);
+            
             $response = Http::withToken($token)->post($this->baseUrl . '/delivery/v1/deliveries', [
                 'service_type' => 'INSTANT',
                 'stops' => [
@@ -60,10 +63,10 @@ class GrabService
                         ]
                     ],
                     [
-                        'address' => $order->delivery_address,
+                        'address' => $deliveryAddress['address'] ?? '',
                         'coordinates' => [
-                            'latitude' => $order->customer->latitude,
-                            'longitude' => $order->customer->longitude
+                            'latitude' => $deliveryAddress['latitude'] ?? 0,
+                            'longitude' => $deliveryAddress['longitude'] ?? 0
                         ]
                     ]
                 ],

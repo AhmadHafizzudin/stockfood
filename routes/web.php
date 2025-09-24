@@ -99,6 +99,10 @@ Route::get('payment-success', 'PaymentController@success')->name('payment-succes
 Route::get('payment-fail', 'PaymentController@fail')->name('payment-fail');
 Route::get('payment-cancel', 'PaymentController@cancel')->name('payment-cancel');
 
+// Order success/failure routes for Flutter app
+Route::get('order-successful', 'PaymentController@success')->name('order-successful');
+Route::get('order-failed', 'PaymentController@fail')->name('order-failed');
+
 Route::get('wallet-payment','WalletPaymentController@make_payment')->name('wallet.payment');
 
 $is_published = 0;

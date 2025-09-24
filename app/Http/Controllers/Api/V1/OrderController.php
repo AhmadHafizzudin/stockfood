@@ -51,7 +51,7 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required',
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
             'contact_number' => $request->user ? 'nullable' : 'required',
         ]);
 
@@ -107,9 +107,9 @@ class OrderController extends Controller
             'longitude' => 'required_if:order_type,delivery',
             'latitude' => 'required_if:order_type,delivery',
             'dm_tips' => 'nullable|numeric',
-            'guest_id' => $request->user ? 'nullable' : 'required',
-            'contact_person_name' => $request->user ? 'nullable' : 'required',
-            'contact_person_number' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
+            'contact_person_name' => 'nullable',
+            'contact_person_number' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -638,7 +638,7 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [
             'limit' => 'required',
             'offset' => 'required',
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -720,7 +720,7 @@ class OrderController extends Controller
         $validator = Validator::make($request->all(), [
             'limit' => 'required',
             'offset' => 'required',
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -759,7 +759,7 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'order_id' => 'required',
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -808,7 +808,7 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'reason' => 'required|max:255',
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -970,7 +970,7 @@ class OrderController extends Controller
     public function update_payment_method(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'guest_id' => $request->user ? 'nullable' : 'required',
+            'guest_id' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -1064,7 +1064,24 @@ class OrderController extends Controller
 
     public function order_notification(Request $request,$order_id){
         $user_id = $request->user ? $request->user->id : $request['guest_id'];
+        // Guard: invalid or missing order id
+        if (!$order_id || $order_id === 'null') {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'order_id', 'message' => translate('messages.order_not_found')]
+                ]
+            ], 404);
+        }
+
         $order = Order::where('user_id', $user_id)->where('id',$order_id)->with(['restaurant','customer'])->first();
+
+        if (!$order) {
+            return response()->json([
+                'errors' => [
+                    ['code' => 'order', 'message' => translate('messages.order_not_found')]
+                ]
+            ], 404);
+        }
 
         $payments = $order->payments()->where('payment_method','cash_on_delivery')->exists();
         $reload_home= false;
@@ -1627,28 +1644,148 @@ class OrderController extends Controller
     public function place_order_grab(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'restaurant_id' => 'required|exists:restaurants,id',
-            'delivery_address_id' => 'required|integer',
-            'cart' => 'required|array'
+            'order_amount' => 'required',
+            'payment_method'=>'required|in:cash_on_delivery,digital_payment,wallet,offline_payment',
+            'order_type' => 'required|in:take_away,delivery,dine_in',
+            'restaurant_id' => 'required',
+            'distance' => 'required_if:order_type,delivery',
+            'address' => 'required_if:order_type,delivery',
+            'longitude' => 'required_if:order_type,delivery',
+            'latitude' => 'required_if:order_type,delivery',
+            'dm_tips' => 'nullable|numeric',
+            'guest_id' => 'nullable',
+            'contact_person_name' => 'nullable',
+            'contact_person_number' => 'nullable',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 422);
         }
 
+        // Use the same validation logic as regular place_order
+        $order_validation_check = $this->order_validation_check($request);
+        if(data_get($order_validation_check,'status_code') === 403 ){
+            return response()->json([
+                'errors' => [
+                    ['code' => data_get($order_validation_check,'code'), 'message' => data_get($order_validation_check,'message')]
+                ]
+            ], data_get($order_validation_check,'status_code'));
+        } else{
+            $restaurant = $order_validation_check;
+        }
+
         DB::beginTransaction();
         try {
-            // 1. Create Order in DB (same as normal place_order)
-            $order = Order::create([
-                'user_id' => $request->user()->id,
-                'restaurant_id' => $request->restaurant_id,
-                'delivery_address_id' => $request->delivery_address_id,
-                'order_amount' => $request->order_amount ?? 0,
-                'order_status' => 'pending',
-                'payment_status' => 'unpaid'
-            ]);
+            // Prepare address data like regular place_order
+            $address = [
+                'contact_person_name' => $request->contact_person_name ? $request->contact_person_name : ($request->user?$request->user->f_name . ' ' . $request->user->f_name:''),
+                'contact_person_number' => $request->contact_person_number ?  $request->contact_person_number: $request->user?->phone,
+                'contact_person_email' => $request->contact_person_email ? $request->contact_person_email : ($request->user?$request->user->email:''),
+                'address_type' => $request->address_type?$request->address_type:'Delivery',
+                'address' => $request->address,
+                'floor' => $request->floor,
+                'road' => $request->road,
+                'house' => $request->house,
+                'longitude' => (string)$request->longitude,
+                'latitude' => (string)$request->latitude,
+            ];
 
-            // 2. Call Grab API
+            // Process cart items like regular place_order
+            $carts = Cart::where('user_id', $request->user ? $request->user->id : $request['guest_id'])->where('is_guest',$request->user ? 0 : 1)
+                ->when(isset($request->is_buy_now) && $request->is_buy_now == 1 && $request->cart_id, function ($query) use ($request) {
+                    return $query->where('id',$request->cart_id);
+                })
+                ->get()->map(function ($data) {
+                    $data->add_on_ids = json_decode($data->add_on_ids,true);
+                    $data->add_on_qtys = json_decode($data->add_on_qtys,true);
+                    $data->variations = json_decode($data->variations,true);
+                    return $data;
+                });
+
+            if(isset($request->is_buy_now) && $request->is_buy_now == 1){
+                $carts = $request['cart'];
+            }
+
+            if(count($carts) == 0 ){
+                return response()->json([
+                    'errors' => [
+                        ['code' => 'empty_order', 'message' => translate('you_can_not_place_empty_order')]
+                    ]
+                ], 403);
+            }
+
+            // Create Order in DB (similar to regular place_order)
+            $lastId = Order::max('id') ?? 99999;
+            $order = new Order();
+            $order->id = $lastId + 1;
+            $order->user_id = $request->user ? $request->user->id : $request['guest_id'];
+            $order->order_amount = $request['order_amount'];
+            $order->payment_status = 'unpaid';
+            $order->order_status = 'pending';
+            $order->payment_method = $request->payment_method;
+            $order->order_type = $request['order_type'];
+            $order->restaurant_id = $request['restaurant_id'];
+            $order->delivery_address = json_encode($address);
+            $order->distance = $request->distance ?? 0;
+            $order->zone_id = $restaurant->zone_id;
+            $order->is_guest = $request->user ? 0 : 1;
+            $order->otp = rand(1000, 9999);
+            $order->pending = now();
+            
+            // Add required fields with default values
+            $order->restaurant_discount_amount = 0;
+            $order->coupon_discount_amount = 0;
+            $order->total_tax_amount = 0;
+            $order->delivery_charge = 0;
+            $order->original_delivery_charge = 0;
+            $order->additional_charge = 0;
+            $order->extra_packaging_amount = 0;
+            $order->dm_tips = $request->dm_tips ?? 0;
+            $order->ref_bonus_amount = 0;
+            $order->discount_on_product_by = 'vendor';
+            $order->tax_status = 'excluded';
+            $order->tax_type = 'percent';
+            $order->coupon_code = null;
+            $order->coupon_discount_title = null;
+            $order->free_delivery_by = null;
+            $order->coupon_created_by = null;
+            $order->order_note = null;
+            $order->transaction_reference = null;
+            $order->bring_change_amount = 0;
+            $order->vehicle_id = null;
+            $order->cutlery = 0;
+            $order->unavailable_item_note = null;
+            $order->delivery_instruction = null;
+            $order->tax_percentage = $restaurant->tax ?? 0;
+            $order->scheduled = 0;
+            $order->schedule_at = now();
+            $order->confirmed = null;
+            $order->accepted = null;
+            $order->processing = null;
+            $order->handover = null;
+            $order->picked_up = null;
+            $order->delivered = null;
+            $order->canceled = null;
+            $order->refund_requested = null;
+            $order->refund_request_canceled = null;
+            $order->refunded = null;
+            $order->failed = null;
+            $order->cancellation_reason = null;
+            $order->canceled_by = null;
+            $order->processing_time = null;
+            $order->checked = 0;
+            $order->edited = 0;
+            $order->adjusment = 0;
+            $order->cash_back_id = null;
+            $order->order_proof = null;
+            
+            $order->created_at = now();
+            $order->updated_at = now();
+            $order->save();
+
+            // Skip Grab API call for now (Grab credentials not configured yet)
+            // TODO: Enable Grab API when credentials are configured
+            /*
             $grab = new GrabService();
             $grabResponse = $grab->createDelivery($order);
 
@@ -1659,20 +1796,54 @@ class OrderController extends Controller
                 ], 500);
             }
 
-            // 3. Save Grab details to order
+            // Save Grab details to order
             $order->grab_delivery_id = $grabResponse['data']['deliveryID'] ?? null;
             $order->grab_fee = $grabResponse['data']['fee'] ?? 0;
             $order->grab_status = $grabResponse['data']['status'] ?? 'pending';
             $order->grab_tracking_url = $grabResponse['data']['tracking_url'] ?? null;
             $order->grab_raw_response = json_encode($grabResponse['data']);
             $order->save();
+            */
+
+            // For now, just set default Grab values
+            $order->grab_delivery_id = null;
+            $order->grab_fee = 0;
+            $order->grab_status = 'pending';
+            $order->grab_tracking_url = null;
+            $order->grab_raw_response = null;
+            $order->save();
 
             DB::commit();
 
+            // Zenpay Flow
+            // For digital_payment, RETURN payment_url in JSON so the app can navigate
+            $payment_url = null;
+            if ($request->payment_method == 'digital_payment') {
+                $payment_url = url('/payment-mobile') . '?' . http_build_query([
+                    'order_id' => $order->id,
+                    'customer_id' => $order->user_id,
+                    'payment_method' => 'zenpay',
+                    'payment_platform' => 'web',
+                    'callback' => url('/order-successful')
+                ]);
+            }
+
+            // Zenpay Bypass
+            // If you want to bypass ZenPay entirely during development,
+            // uncomment the block below and comment out the Zenpay Flow block above.
+            
+            // if ($request->payment_method == 'digital_payment') {
+            //     return redirect()->route('payment-success');
+            // }
+            
+
+            // Unified JSON response (app decides what to do next)
             return response()->json([
                 'message' => 'Order placed successfully with Grab.',
                 'order_id' => $order->id,
-                'grab_tracking_url' => $order->grab_tracking_url
+                'grab_tracking_url' => $order->grab_tracking_url,
+                'payment_required' => $request->payment_method == 'digital_payment',
+                'payment_url' => $payment_url
             ], 200);
 
         } catch (\Exception $e) {

@@ -50,12 +50,35 @@ class PaymentController extends Controller
         session()->put('payment_platform', $request['payment_platform']);
         session()->put('order_id', $request->order_id);
 
+        // Debug: Log the request parameters
+        \Log::info('Payment Request:', [
+            'order_id' => $request->order_id,
+            'customer_id' => $request['customer_id'],
+            'payment_method' => $request->payment_method ?? 'not_set'
+        ]);
+
         $order = Order::where(['id' => $request->order_id, 'user_id' => $request['customer_id']])->first();
 
         if(!$order){
+            \Log::info('Order not found:', [
+                'order_id' => $request->order_id,
+                'customer_id' => $request['customer_id'],
+                'available_orders' => Order::where('id', $request->order_id)->get(['id', 'user_id', 'is_guest'])
+            ]);
             return response()->json(['errors' => ['code' => 'order-payment', 'message' => 'Data not found']], 403);
         }
 
+        // Zenpay Bypass
+        // Toggle this flag or set env ZENPAY_BYPASS=true to simulate successful payment without hitting ZenPay.
+        $zenpayBypass = env('ZENPAY_BYPASS', true);
+        if ($zenpayBypass) {
+            // Optional: mark order as paid here if you want to persist payment state immediately.
+            // $order->payment_status = 'paid';
+            // $order->save();
+            return redirect()->route('payment-success');
+        }
+
+        // Zenpay Flow
         //guest user check
         if ($order->is_guest) {
             $address = json_decode($order['delivery_address'] , true);
