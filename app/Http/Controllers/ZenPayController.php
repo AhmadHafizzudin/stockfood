@@ -141,8 +141,8 @@ class ZenPayController extends Controller
             'email' => $payer->email ?? '',
             'amount' => number_format($payment_data->payment_amount, 2, '.', ''),
             'callback_url' => route('zenpay-callback'),
-            'return_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . '?flag=success&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-success'),
-            'decline_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . '?flag=fail&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-failed'),
+            'return_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . (strpos($payment_data->external_redirect_link, '?') !== false ? '&' : '?') . 'flag=success&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-success'),
+            'decline_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . (strpos($payment_data->external_redirect_link, '?') !== false ? '&' : '?') . 'flag=fail&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-failed'),
             'currency' => 'MYR',
             'timestamp' => now()->toISOString()
         ];
