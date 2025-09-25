@@ -287,6 +287,7 @@ class ZenPayController extends Controller
                 if (isset($data) && function_exists($data->success_hook)) {
                     call_user_func($data->success_hook, $data);
                 }
+                Log::info($this->payment_response($data, 'success'));
                 return $this->payment_response($data, 'success');
             }
         }
@@ -307,6 +308,7 @@ class ZenPayController extends Controller
             if (isset($payment_data) && function_exists($payment_data->failure_hook)) {
                 call_user_func($payment_data->failure_hook, $payment_data);
             }
+            Log::info($this->payment_response($payment_data, 'fail'));
 
             return $this->payment_response($payment_data, 'fail');
         }
