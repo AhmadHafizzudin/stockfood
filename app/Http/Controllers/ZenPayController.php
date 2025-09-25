@@ -67,6 +67,19 @@ class ZenPayController extends Controller
      */
     public function createHostedPayment(Request $request = null, $payment_data = null)
     {
+        // If called from route with order parameter (API flow)
+        if ($request && $request->route('order')) {
+            $order = Order::find($request->route('order'));
+            if (!$order) {
+                return redirect()->route('payment-fail')->with('error', 'Order not found');
+            }
+            
+            $user = User::find($order->user_id);
+            $config = Helpers::get_business_settings('zenpay');
+            
+            return $this->processHostedPayment($order, $user, $config);
+        }
+        
         // If called from payment view form
         if ($request && $request->has('order_id')) {
             $order = Order::find($request->input('order_id'));

@@ -1836,28 +1836,47 @@ class OrderController extends Controller
 
             DB::commit();
 
-            // Zenpay Flow
-            // For digital_payment, RETURN payment_url that points to ZenPayController
+            // Standard Payment Flow
             $payment_url = null;
             if ($request->payment_method == 'digital_payment') {
-                // Prefer server-side creation via ZenPayController
-                $payment_url = route('zenpay-checkout-order', ['order' => $order->id]) . '?' . http_build_query([
-                    'order_id' => $order->id,
-                    'customer_id' => $order->user_id,
-                    'payment_platform' => 'web',
-                    // Use built-in success route; apps can override via query if needed
-                    'callback' => url('/payment-success')
-                ]);
-            }
+                // Use standard payment system like wallet add-fund
+                $customer = User::find($order->user_id);
+                if (!$customer) {
+                    DB::rollBack();
+                    return response()->json(['errors' => [['message' => 'Customer not found']]], 404);
+                }
 
-            // Zenpay Bypass
-            // If you want to bypass ZenPay entirely during development,
-            // uncomment the block below and comment out the Zenpay Flow block above.
-            
-            // if ($request->payment_method == 'digital_payment') {
-            //     return redirect()->route('payment-success');
-            // }
-            
+                $payer = new \App\Library\Payer(
+                    $customer->f_name . ' ' . $customer->l_name,
+                    $customer->email,
+                    $customer->phone,
+                    ''
+                );
+
+                $currency = \App\Models\BusinessSetting::where(['key' => 'currency'])->first()->value;
+                $additional_data = [
+                    'business_name' => \App\Models\BusinessSetting::where(['key' => 'business_name'])->first()?->value,
+                    'business_logo' => dynamicStorage('storage/app/public/business') . '/' . \App\Models\BusinessSetting::where(['key' => 'logo'])->first()?->value
+                ];
+
+                $payment_info = new \App\Library\Payment(
+                    success_hook: 'order_success',
+                    failure_hook: 'order_failed',
+                    currency_code: $currency,
+                    payment_method: 'zenpay',
+                    payment_platform: 'web',
+                    payer_id: $customer->id,
+                    receiver_id: '100',
+                    additional_data: $additional_data,
+                    payment_amount: $order->order_amount,
+                    external_redirect_link: url('/payment-success'),
+                    attribute: 'orders',
+                    attribute_id: $order->id
+                );
+
+                $receiver_info = new \App\Library\Receiver('receiver_name', 'example.png');
+                $payment_url = \App\Traits\Payment::generate_link($payer, $payment_info, $receiver_info);
+            }
 
             // Unified JSON response (app decides what to do next)
             return response()->json([

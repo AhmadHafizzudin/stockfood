@@ -114,6 +114,38 @@ if (! function_exists('order_place')) {
         }
     }
 }
+if (! function_exists('order_success')) {
+    function order_success($data)
+    {
+        $order = Order::find($data->attribute_id);
+        $order->payment_status = 'paid';
+        $order->payment_method = $data->payment_method;
+        $order->transaction_reference = $data->transaction_ref ?? null;
+        $order->confirmed = now();
+        $order->order_status = 'confirmed';
+        $order->save();
+        
+        // Send order notifications
+        Helpers::send_order_notification($order);
+        
+        // Send email notifications
+        try {
+            $address = json_decode($order->delivery_address, true);
+            $email = $order->is_guest == 1 ? data_get($address, 'contact_person_email') : $order->customer?->email;
+            $name = $order->is_guest == 1 ? data_get($address, 'contact_person_name') : $order->customer?->f_name . ' ' . $order->customer?->l_name;
+            
+            if (config('mail.status') && $email && $order->order_status == 'confirmed') {
+                $notification_status = Helpers::getNotificationStatusData('customer', 'customer_order_notification');
+                if ($notification_status?->mail_status == 'active' && Helpers::get_mail_status('place_order_mail_status_user') == '1') {
+                    Mail::to($email)->send(new \App\Mail\PlaceOrder($order->id));
+                }
+            }
+        } catch (\Exception $exception) {
+            info([$exception->getFile(), $exception->getLine(), $exception->getMessage()]);
+        }
+    }
+}
+
 if (! function_exists('order_failed')) {
     function order_failed($data)
     {
