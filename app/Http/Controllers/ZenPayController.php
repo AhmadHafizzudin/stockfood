@@ -161,6 +161,13 @@ class ZenPayController extends Controller
         // Determine API URL based on environment
         $apiUrl = $this->getApiUrl() . '/v1/checkout-sessions';
 
+        // Log the request for debugging
+        \Log::info('ZenPay API Request:', [
+            'url' => $apiUrl,
+            'data' => $requestData,
+            'signature' => $signature
+        ]);
+
         try {
             // Make API call to create checkout session
             $response = Http::withHeaders([
@@ -168,20 +175,36 @@ class ZenPayController extends Controller
                 'X-Signature' => $signature
             ])->post($apiUrl, $requestData);
 
+            // Log the response for debugging
+            \Log::info('ZenPay API Response:', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
             if ($response->successful()) {
                 $responseData = $response->json();
                 
                 if (isset($responseData['success']) && $responseData['success'] && isset($responseData['data']['url'])) {
                     // Redirect to ZenPay hosted checkout page
+                    \Log::info('ZenPay redirecting to:', $responseData['data']['url']);
                     return redirect($responseData['data']['url']);
                 }
             }
 
             // If API call fails, show error
             $errorMessage = $response->json()['message'] ?? 'Payment session creation failed';
+            \Log::error('ZenPay API failed:', [
+                'status' => $response->status(),
+                'message' => $errorMessage,
+                'body' => $response->body()
+            ]);
             return redirect()->route('payment-fail')->with('error', $errorMessage);
 
         } catch (\Exception $e) {
+            \Log::error('ZenPay API exception:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return redirect()->route('payment-fail')->with('error', 'Payment gateway error: ' . $e->getMessage());
         }
     }
