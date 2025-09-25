@@ -279,22 +279,14 @@ class ZenPayController extends Controller
      */
     public function success(Request $request)
     {
-        $orderId = session()->get('order_id');
         $paymentId = session()->get('payment_id');
         
-        // Handle order-based flow
-        if ($orderId) {
-            $order = Order::find($orderId);
-            if ($order && $order->payment_status === 'paid') {
-                session()->forget('order_id');
-                return redirect()->route('payment-success')->with('success', 'Payment completed successfully');
-            }
-        }
-        
-        // Handle payment gateway flow
         if ($paymentId) {
             $data = $this->payment::where(['id' => $paymentId])->first();
             if ($data && $data->is_paid) {
+                if (isset($data) && function_exists($data->success_hook)) {
+                    call_user_func($data->success_hook, $data);
+                }
                 return $this->payment_response($data, 'success');
             }
         }
@@ -307,16 +299,8 @@ class ZenPayController extends Controller
      */
     public function failed(Request $request)
     {
-        $orderId = session()->get('order_id');
         $paymentId = session()->get('payment_id');
         
-        // Handle order-based flow
-        if ($orderId) {
-            session()->forget('order_id');
-            return redirect()->route('payment-fail')->with('error', 'Payment was declined or failed');
-        }
-        
-        // Handle payment gateway flow
         if ($paymentId) {
             $payment_data = $this->payment::where(['id' => $paymentId])->first();
 
