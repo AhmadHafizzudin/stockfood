@@ -1869,7 +1869,7 @@ class OrderController extends Controller
                     receiver_id: '100',
                     additional_data: $additional_data,
                     payment_amount: $order->order_amount,
-                    external_redirect_link: url('/payment-success'),
+                    external_redirect_link: $request->has('callback') ? $request['callback'] : (session('callback') ?? url('/order-successful')),
                     attribute: 'orders',
                     attribute_id: $order->id
                 );

@@ -238,7 +238,12 @@ class ZenPayController extends Controller
                     Log::info("ZenPay Callback: Order {$orderId} marked as paid");
                     session()->forget('order_id');
                 }
-                // Redirect to unified success page instead of JSON
+                // Use payment_response to get the correct redirect URL
+                $payment_data = $this->payment::where(['attribute_id' => $orderId, 'attribute' => 'orders'])->first();
+                if ($payment_data) {
+                    return $this->payment_response($payment_data, 'success');
+                }
+                // Fallback to generic success page
                 return redirect()->route('payment-success');
             }
             
