@@ -161,26 +161,81 @@ class PaymentController extends Controller
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
         if (isset($order) && $order->callback != null) {
-            return redirect($order->callback . '&status=success');
+            $redirect = $order->callback . (str_contains($order->callback, '?') ? '&' : '?') . 'id=' . $order->id . '&status=success';
+            // clear session
+            session()->forget('order_id');
+            session()->forget('customer_id');
+            return redirect($redirect);
         }
-        return response()->json(['message' => 'Payment succeeded'], 200);
+        // Fallback: send to home instead of JSON
+        session()->forget('order_id');
+        session()->forget('customer_id');
+        return redirect(url('/'));
     }
 
     public function fail()
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
-        if (isset($order) && $order->callback != null) {
-            return redirect($order->callback . '&status=fail');
+        if ($order) {
+            // Delete order on cancel/fail to avoid showing in lists and notifications
+            try {
+                // Best-effort cascading removal of related rows
+                $order->details()?->delete();
+                $order->orderTaxes()?->delete();
+                $order->payments()?->delete();
+                $order->offline_payments()?->delete();
+            } catch (\Throwable $e) {
+                \Log::warning('Order related delete failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            }
+            try {
+                $orderId = $order->id;
+                $callback = $order->callback;
+                $order->delete();
+                // clear session
+                session()->forget('order_id');
+                session()->forget('customer_id');
+                if ($callback) {
+                    $redirect = $callback . (str_contains($callback, '?') ? '&' : '?') . 'id=' . $orderId . '&status=fail';
+                    return redirect($redirect);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Order delete failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            }
         }
-        return response()->json(['message' => 'Payment failed'], 403);
+        // Fallback: send to home instead of JSON
+        session()->forget('order_id');
+        session()->forget('customer_id');
+        return redirect(url('/'));
     }
     public function cancel(Request $request)
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
-        if (isset($order) && $order->callback != null) {
-            return redirect($order->callback . '&status=fail');
+        if ($order) {
+            try {
+                $order->details()?->delete();
+                $order->orderTaxes()?->delete();
+                $order->payments()?->delete();
+                $order->offline_payments()?->delete();
+            } catch (\Throwable $e) {
+                \Log::warning('Order related delete failed (cancel)', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            }
+            try {
+                $orderId = $order->id;
+                $callback = $order->callback;
+                $order->delete();
+                session()->forget('order_id');
+                session()->forget('customer_id');
+                if ($callback) {
+                    $redirect = $callback . (str_contains($callback, '?') ? '&' : '?') . 'id=' . $orderId . '&status=fail';
+                    return redirect($redirect);
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Order delete failed (cancel)', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            }
         }
-        return response()->json(['message' => 'Payment failed'], 403);
+        session()->forget('order_id');
+        session()->forget('customer_id');
+        return redirect(url('/'));
     }
 
 }

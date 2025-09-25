@@ -225,7 +225,8 @@ class ZenPayController extends Controller
                     Log::info("ZenPay Callback: Order {$orderId} marked as paid");
                     session()->forget('order_id');
                 }
-                return response()->json(['status' => 'success'], 200);
+                // Redirect to unified success page instead of JSON
+                return redirect()->route('payment-success');
             }
             
             // Handle payment gateway flow
@@ -244,13 +245,14 @@ class ZenPayController extends Controller
                 }
                 
                 Log::info("ZenPay Callback: Payment {$paymentId} marked as paid");
-                return response()->json(['status' => 'success'], 200);
+                // Use common formatted payment response
+                return $this->payment_response($data, 'success');
             }
         } else {
             Log::warning("ZenPay Callback: Payment failed for order {$orderId}. Status: {$status}, Code: {$statusCode}");
         }
-
-        return response()->json(['status' => 'failed'], 200);
+        // Redirect to unified failed page
+        return redirect()->route('payment-fail');
     }
 
     /**
