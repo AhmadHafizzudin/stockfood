@@ -68,15 +68,7 @@ class PaymentController extends Controller
             return response()->json(['errors' => ['code' => 'order-payment', 'message' => 'Data not found']], 403);
         }
 
-        // Zenpay Bypass
-        // Toggle this flag or set env ZENPAY_BYPASS=true to simulate successful payment without hitting ZenPay.
-        $zenpayBypass = env('ZENPAY_BYPASS', true);
-        if ($zenpayBypass) {
-            // Optional: mark order as paid here if you want to persist payment state immediately.
-            // $order->payment_status = 'paid';
-            // $order->save();
-            return redirect()->route('payment-success');
-        }
+        // Zenpay Flow
 
         // Zenpay Flow
         //guest user check
