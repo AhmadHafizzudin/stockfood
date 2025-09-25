@@ -141,8 +141,8 @@ class ZenPayController extends Controller
             'email' => $payer->email ?? '',
             'amount' => number_format($payment_data->payment_amount, 2, '.', ''),
             'callback_url' => route('zenpay-callback'),
-            'return_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . (strpos($payment_data->external_redirect_link, '?') !== false ? '&' : '?') . 'flag=success&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-success'),
-            'decline_url' => $payment_data->external_redirect_link ? $payment_data->external_redirect_link . (strpos($payment_data->external_redirect_link, '?') !== false ? '&' : '?') . 'flag=fail&token=' . base64_encode('payment_method=zenpay&&attribute_id=' . $payment_data->attribute_id . '&&transaction_reference=' . $payment_data->transaction_id) : route('zenpay-failed'),
+            'return_url' => $payment_data->external_redirect_link ? $this->buildRedirectUrl($payment_data->external_redirect_link, 'success', $payment_data) : route('zenpay-success'),
+            'decline_url' => $payment_data->external_redirect_link ? $this->buildRedirectUrl($payment_data->external_redirect_link, 'fail', $payment_data) : route('zenpay-failed'),
             'currency' => 'MYR',
             'timestamp' => now()->toISOString()
         ];
@@ -195,6 +195,38 @@ class ZenPayController extends Controller
         return env('APP_MODE') === 'live' 
             ? 'https://api.thezenpay.com' 
             : 'https://api-staging.thezenpay.com';
+    }
+
+    /**
+     * Build redirect URL with proper parameter handling
+     */
+    private function buildRedirectUrl($baseUrl, $flag, $paymentData)
+    {
+        $token = base64_encode('payment_method=zenpay&&attribute_id=' . $paymentData->attribute_id . '&&transaction_reference=' . $paymentData->transaction_id);
+        
+        // Parse existing URL and parameters
+        $parsedUrl = parse_url($baseUrl);
+        $queryParams = [];
+        
+        // Extract existing query parameters
+        if (isset($parsedUrl['query'])) {
+            parse_str($parsedUrl['query'], $queryParams);
+        }
+        
+        // Add/update our parameters
+        $queryParams['flag'] = $flag;
+        $queryParams['token'] = $token;
+        
+        // Rebuild URL
+        $baseUrl = $parsedUrl['scheme'] . '://' . $parsedUrl['host'];
+        if (isset($parsedUrl['port'])) {
+            $baseUrl .= ':' . $parsedUrl['port'];
+        }
+        if (isset($parsedUrl['path'])) {
+            $baseUrl .= $parsedUrl['path'];
+        }
+        
+        return $baseUrl . '?' . http_build_query($queryParams);
     }
 
     /**
