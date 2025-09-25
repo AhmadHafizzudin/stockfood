@@ -1816,15 +1816,16 @@ class OrderController extends Controller
             DB::commit();
 
             // Zenpay Flow
-            // For digital_payment, RETURN payment_url in JSON so the app can navigate
+            // For digital_payment, RETURN payment_url that points to ZenPayController
             $payment_url = null;
             if ($request->payment_method == 'digital_payment') {
-                $payment_url = url('/payment-mobile') . '?' . http_build_query([
+                // Prefer server-side creation via ZenPayController
+                $payment_url = url('/zenpay/checkout-order/' . $order->id) . '?' . http_build_query([
                     'order_id' => $order->id,
                     'customer_id' => $order->user_id,
-                    'payment_method' => 'zenpay',
                     'payment_platform' => 'web',
-                    'callback' => url('/order-successful')
+                    // Use built-in success route; apps can override via query if needed
+                    'callback' => url('/payment-success')
                 ]);
             }
 

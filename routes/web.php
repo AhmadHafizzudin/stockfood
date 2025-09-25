@@ -170,6 +170,9 @@ if (!$is_published) {
             
             // Create checkout session and redirect to hosted page
             Route::post('checkout-create', [ZenPayController::class, 'createHostedPayment'])->name('checkout-create');
+
+            // Allow order checkout via GET (for simple redirects from APIs/apps)
+            Route::get('checkout-order/{order}', [ZenPayController::class, 'createHostedPayment'])->name('checkout-order');
             
             // Callback from ZenPay (webhook)
             Route::any('callback', [ZenPayController::class, 'callback'])
