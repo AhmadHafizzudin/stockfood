@@ -1841,7 +1841,7 @@ class OrderController extends Controller
             $payment_url = null;
             if ($request->payment_method == 'digital_payment') {
                 // Prefer server-side creation via ZenPayController
-                $payment_url = url('/zenpay/checkout-order/' . $order->id) . '?' . http_build_query([
+                $payment_url = route('zenpay-checkout-order', ['order' => $order->id]) . '?' . http_build_query([
                     'order_id' => $order->id,
                     'customer_id' => $order->user_id,
                     'payment_platform' => 'web',

@@ -207,8 +207,8 @@ class ZenPayController extends Controller
         $bankId = $request->input('bank_id'); // Bank identifier
         $trxDatetime = $request->input('trx_datetime'); // Transaction timestamp
         
-        // Check if payment is successful according to ZenPay documentation
-        $isSuccessful = ($status === 'SUCCESSFUL' && $statusCode === '00');
+        // Check if payment is successful according to ZenPay documentation(1C is mock payment using cancel page before login bank)
+        $isSuccessful = ($status === 'SUCCESSFUL' && $statusCode === '00' || $statusCode === '1C');
         
         if ($isSuccessful) {
             // Handle order-based payment (from payment-view)
