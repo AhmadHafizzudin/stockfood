@@ -1907,9 +1907,10 @@ class OrderController extends Controller
         }
 
         $order = Order::find($request->order_id);
-
+        
         if (!$order->grab_delivery_id) {
-            return response()->json(['errors' => [['message' => 'No Grab delivery found for this order.']]], 404);
+            // return response()->json(['errors' => [['message' => 'No Grab delivery found for this order.']]], 404);
+            return response()->json(['message' => 'Grab integration not yet implemented.'], 200);
         }
 
         $grab = new GrabService();
