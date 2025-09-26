@@ -112,12 +112,14 @@ class ZenPayController extends Controller
                 
                 if (isset($responseData['success']) && $responseData['success'] && isset($responseData['data']['url'])) {
                     // Redirect to ZenPay hosted checkout page
+                    Log::info('ZenPay Redirect: ' . $responseData['data']['url']);
                     return redirect($responseData['data']['url']);
                 }
             }
 
             // If API call fails, show error
             $errorMessage = $response->json()['message'] ?? 'Payment session creation failed';
+            Log::error('ZenPay API Call Error: ' . $errorMessage);
             return redirect()->route('payment-fail')->with('error', $errorMessage);
 
         } catch (\Exception $e) {
