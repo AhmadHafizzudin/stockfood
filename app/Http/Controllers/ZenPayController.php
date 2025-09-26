@@ -209,7 +209,9 @@ class ZenPayController extends Controller
 
         if ($paymentId || $statusCode === '1C' || $statusCode === '00') {
             $data = $this->payment::where(['id' => $paymentId])->first();
-            if ($data && $data->is_paid) {
+            if ($data) {
+                // if ($data && $data->is_paid) {
+
                 if (isset($data) && function_exists($data->success_hook)) {
                     call_user_func($data->success_hook, $data);
                 }
