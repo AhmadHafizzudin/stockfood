@@ -106,7 +106,7 @@ class ZenPayController extends Controller
                 'Content-Type' => 'application/json',
                 'X-Signature' => $signature
             ])->post($apiUrl, $requestData);
-
+            Log::info('ZenPay API Call Response: ' . $response);
             if ($response->successful()) {
                 $responseData = $response->json();
                 
