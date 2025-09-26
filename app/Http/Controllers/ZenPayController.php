@@ -81,7 +81,7 @@ class ZenPayController extends Controller
             'amount' => number_format($payment_data->payment_amount, 2, '.', ''),
             'callback_url' => route('zenpay.callback'),
             'return_url' => route('zenpay.success'),
-            'decline_url' => null,
+            'decline_url' => "",
             'currency' => 'MYR',
             'timestamp' => now()->toISOString()
         ];
