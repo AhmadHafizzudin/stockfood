@@ -60,11 +60,6 @@ class PaymentController extends Controller
         $order = Order::where(['id' => $request->order_id, 'user_id' => $request['customer_id']])->first();
 
         if(!$order){
-            \Log::info('Order not found:', [
-                'order_id' => $request->order_id,
-                'customer_id' => $request['customer_id'],
-                'available_orders' => Order::where('id', $request->order_id)->get(['id', 'user_id', 'is_guest'])
-            ]);
             return response()->json(['errors' => ['code' => 'order-payment', 'message' => 'Data not found']], 403);
         }
 
@@ -143,68 +138,26 @@ class PaymentController extends Controller
     public function success()
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
-        if ($order && $order->callback) {
-            $redirect = $order->callback . (str_contains($order->callback, '?') ? '&' : '?') . 'id=' . $order->id . '&status=success';
-            return redirect($redirect);
+        if (isset($order) && $order->callback != null) {
+            return redirect($order->callback . '&status=success');
         }
-        return redirect(url('/'));
+        return response()->json(['message' => 'Payment succeeded'], 200);
     }
 
     public function fail()
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
-        if ($order) {
-            try {
-                $order->details()?->delete();
-                $order->orderTaxes()?->delete();
-                $order->payments()?->delete();
-                $order->offline_payments()?->delete();
-            } catch (\Throwable $e) {
-                \Log::warning('Order related delete failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-            }
-
-            try {
-                $orderId = $order->id;
-                $callback = $order->callback;
-                $order->delete();
-
-                if ($callback) {
-                    $redirect = $callback . (str_contains($callback, '?') ? '&' : '?') . 'id=' . $orderId . '&status=fail';
-                    return redirect($redirect);
-                }
-            } catch (\Throwable $e) {
-                \Log::warning('Order delete failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-            }
+        if (isset($order) && $order->callback != null) {
+            return redirect($order->callback . '&status=fail');
         }
-        return redirect(url('/'));
+        return response()->json(['message' => 'Payment failed'], 403);
     }
-
     public function cancel(Request $request)
     {
         $order = Order::where(['id' => session('order_id'), 'user_id'=>session('customer_id')])->first();
-        if ($order) {
-            try {
-                $order->details()?->delete();
-                $order->orderTaxes()?->delete();
-                $order->payments()?->delete();
-                $order->offline_payments()?->delete();
-            } catch (\Throwable $e) {
-                \Log::warning('Order related delete failed (cancel)', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-            }
-
-            try {
-                $orderId = $order->id;
-                $callback = $order->callback;
-                $order->delete();
-
-                if ($callback) {
-                    $redirect = $callback . (str_contains($callback, '?') ? '&' : '?') . 'id=' . $orderId . '&status=fail';
-                    return redirect($redirect);
-                }
-            } catch (\Throwable $e) {
-                \Log::warning('Order delete failed (cancel)', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-            }
+        if (isset($order) && $order->callback != null) {
+            return redirect($order->callback . '&status=fail');
         }
-        return redirect(url('/'));
+        return response()->json(['message' => 'Payment failed'], 403);
     }
 }
