@@ -1,23 +1,32 @@
 @extends('payment-views.layouts.master')
 
+@push('script')
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Auto-submit form to create ZenPay checkout session
+        document.getElementById("zenpay-form").submit();
+    });
+</script>
+@endpush
+
 @section('content')
-<div class="container">
-    <h2>Pay with ZenPay (Hosted)</h2>
 
-    <form method="POST" action="{{ url('api/v1/zenpay/checkout') }}">
-        @csrf
-
-        <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input name="email" type="email" class="form-control" required>
+    @if(isset($config))
+        <div class="text-center"> 
+            <h1>Please do not refresh this page...</h1>
+            <p>Redirecting to ZenPay payment gateway...</p>
         </div>
 
-        <div class="mb-3">
-            <label class="form-label">Amount (MYR)</label>
-            <input name="amount" type="number" step="0.01" class="form-control" required>
+        <div class="col-md-6 mb-4" style="cursor: pointer">
+            <div class="card">
+                <div class="card-body" style="height: 70px">
+                    <form id="zenpay-form" method="post" action="{{ route('zenpay.make_payment') }}">
+                        @csrf
+                        <input type="hidden" name="payment_id" value="{{ $payment_data->id }}">
+                    </form>
+                </div>
+            </div>
         </div>
+    @endif
 
-        <button class="btn btn-primary">Pay (Hosted)</button>
-    </form>
-</div>
 @endsection

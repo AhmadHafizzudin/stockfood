@@ -3,13 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\Order;
 use App\Traits\Processor;
 use Illuminate\Http\Request;
 use App\Models\PaymentRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Routing\Redirector;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Contracts\View\Factory;
@@ -17,7 +15,6 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Contracts\Foundation\Application;
-use App\CentralLogics\Helpers;
 
 class ZenPayController extends Controller
 {
@@ -41,7 +38,7 @@ class ZenPayController extends Controller
         $this->user = $user;
     }
 
-    public function index(Request $request): View|Factory|JsonResponse|Application|RedirectResponse|Redirector
+    public function index(Request $request): View|Factory|JsonResponse|Application
     {
         $validator = Validator::make($request->all(), [
             'payment_id' => 'required|uuid'
@@ -59,80 +56,22 @@ class ZenPayController extends Controller
             return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
         }
 
-        return $this->createHostedPayment(null, $payment_data);
-    }
-
-    /**
-     * Handle form submission from payment-view.blade.php
-     */
-    public function createHostedPayment(Request $request = null, $payment_data = null)
-    {
-        // If called from route with order parameter (API flow)
-        if ($request && $request->route('order')) {
-            $order = Order::find($request->route('order'));
-            if (!$order) {
-                return redirect()->route('payment-fail')->with('error', 'Order not found');
-            }
-            
-            $user = User::find($order->user_id);
-            $config = Helpers::get_business_settings('zenpay');
-            
-            return $this->processHostedPayment($order, $user, $config);
-        }
-        
-        // If called from payment view form
-        if ($request && $request->has('order_id')) {
-            $order = Order::find($request->input('order_id'));
-            if (!$order) {
-                return redirect()->route('payment-fail')->with('error', 'Order not found');
-            }
-            
-            $user = User::find($order->user_id);
-            $config = Helpers::get_business_settings('zenpay');
-            
-            return $this->processHostedPayment($order, $user, $config);
-        }
-        
-        // If called from payment gateway (original method)
-        if ($payment_data) {
-            return $this->processHostedPaymentFromGateway($payment_data);
-        }
-        
-        return redirect()->route('payment-fail')->with('error', 'Invalid payment request');
-    }
-
-    /**
-     * Process hosted payment from order form
-     */
-    private function processHostedPayment($order, $user, $config)
-    {
-        // Store order info in session
-        session()->put('order_id', $order->id);
-        
-        // Prepare request data for ZenPay API
-        $requestData = [
-            'biller_code' => $config['merchant_id'] ?? '',
-            'order_id' => (string)$order->id,
-            'email' => $user->email ?? '',
-            'amount' => number_format($order->order_amount - $order->partially_paid_amount, 2, '.', ''),
-            'callback_url' => route('zenpay-callback'),
-            'return_url' => route('zenpay-success'),
-            'decline_url' => route('zenpay-failed'),
-            'currency' => 'MYR',
-            'timestamp' => now()->toISOString()
-        ];
-
-        return $this->makeZenPayApiCall($requestData, $config['secret_key']);
-    }
-
-    /**
-     * Process hosted payment from payment gateway (original flow)
-     */
-    private function processHostedPaymentFromGateway($payment_data)
-    {
         $payer = json_decode($payment_data['payer_information']);
         $config = $this->config_values;
         session()->put('payment_id', $payment_data->id);
+        
+        return view('payment-views.zenpay', compact('payment_data', 'payer', 'config'));
+    }
+
+    public function make_payment(Request $request)
+    {
+        $payment_data = $this->payment::where(['id' => $request['payment_id'], 'is_paid' => 0])->first();
+        if (!$payment_data) {
+            return response()->json($this->response_formatter(GATEWAYS_DEFAULT_204), 200);
+        }
+
+        $payer = json_decode($payment_data['payer_information']);
+        $config = $this->config_values;
 
         // Prepare request data for ZenPay API
         $requestData = [
@@ -140,9 +79,9 @@ class ZenPayController extends Controller
             'order_id' => (string)$payment_data->attribute_id,
             'email' => $payer->email ?? '',
             'amount' => number_format($payment_data->payment_amount, 2, '.', ''),
-            'callback_url' => route('zenpay-callback'),
-            'return_url' => route('zenpay-success'),
-            'decline_url' => route('zenpay-failed'),
+            'callback_url' => route('zenpay.callback'),
+            'return_url' => route('zenpay.success'),
+            'decline_url' => route('zenpay.failed'),
             'currency' => 'MYR',
             'timestamp' => now()->toISOString()
         ];
@@ -198,12 +137,8 @@ class ZenPayController extends Controller
     }
 
 
-    /**
-     * Handle callback from ZenPay (webhook)
-     */
     public function callback(Request $request)
     {
-        // Log the incoming callback for debugging
         Log::info('ZenPay Callback Received:', $request->all());
         
         // Verify callback signature
@@ -212,43 +147,15 @@ class ZenPayController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 400);
         }
         
-        $status = $request->input('status'); // "SUCCESSFUL" or "UNSUCCESSFUL"
-        $statusCode = $request->input('status_code'); // "00" for success
-        $orderId = $request->input('order_id'); // Merchant's order reference
-        $amount = $request->input('amount'); // Transaction amount
-        $payrefId = $request->input('payref_id'); // Payment reference ID from ZenPay
-        $fpxId = $request->input('fpx_id'); // FPX transaction identifier
-        $bankId = $request->input('bank_id'); // Bank identifier
-        $trxDatetime = $request->input('trx_datetime'); // Transaction timestamp
+        $status = $request->input('status');
+        $statusCode = $request->input('status_code');
+        $orderId = $request->input('order_id');
+        $payrefId = $request->input('payref_id');
         
-        // Check if payment is successful according to ZenPay documentation(1C is mock payment using cancel page before login bank)
-        $isSuccessful = ($status === 'SUCCESSFUL' && $statusCode === '00' || $statusCode === '1C');
+        // Check if payment is successful
+        $isSuccessful = ($status === 'SUCCESSFUL' && $statusCode === '00') || $statusCode === '1C';
         
         if ($isSuccessful) {
-            // Handle order-based payment (from payment-view)
-            $sessionOrderId = session()->get('order_id');
-            if ($sessionOrderId && $sessionOrderId == $orderId) {
-                $order = Order::find($orderId);
-                if ($order) {
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'payment_method' => 'zenpay',
-                        'transaction_reference' => $payrefId,
-                    ]);
-                    
-                    Log::info("ZenPay Callback: Order {$orderId} marked as paid", ['order_id' => $orderId]);
-                    session()->forget('order_id');
-                }
-                // Use payment_response to get the correct redirect URL
-                $payment_data = $this->payment::where(['attribute_id' => $orderId, 'attribute' => 'orders'])->first();
-                if ($payment_data) {
-                    return $this->payment_response($payment_data, 'success');
-                }
-                // Fallback to generic success page
-                return redirect()->route('payment-success');
-            }
-            
-            // Handle payment gateway flow
             $paymentId = session()->get('payment_id');
             if ($paymentId) {
                 $this->payment::where(['id' => $paymentId])->update([
@@ -264,19 +171,15 @@ class ZenPayController extends Controller
                 }
                 
                 Log::info("ZenPay Callback: Payment {$paymentId} marked as paid", ['payment_id' => $paymentId]);
-                // Use common formatted payment response
                 return $this->payment_response($data, 'success');
             }
         } else {
             Log::warning("ZenPay Callback: Payment failed for order {$orderId}. Status: {$status}, Code: {$statusCode}");
         }
-        // Redirect to unified failed page
+        
         return redirect()->route('payment-fail');
     }
 
-    /**
-     * Handle success redirect from ZenPay
-     */
     public function success(Request $request)
     {
         $paymentId = session()->get('payment_id');
@@ -287,7 +190,6 @@ class ZenPayController extends Controller
                 if (isset($data) && function_exists($data->success_hook)) {
                     call_user_func($data->success_hook, $data);
                 }
-                Log::info($this->payment_response($data, 'success'));
                 return $this->payment_response($data, 'success');
             }
         }
@@ -295,9 +197,6 @@ class ZenPayController extends Controller
         return redirect()->route('payment-fail')->with('error', 'Payment verification failed');
     }
 
-    /**
-     * Handle failed redirect from ZenPay
-     */
     public function failed(Request $request)
     {
         $paymentId = session()->get('payment_id');
@@ -308,7 +207,6 @@ class ZenPayController extends Controller
             if (isset($payment_data) && function_exists($payment_data->failure_hook)) {
                 call_user_func($payment_data->failure_hook, $payment_data);
             }
-            Log::info($this->payment_response($payment_data, 'fail'));
 
             return $this->payment_response($payment_data, 'fail');
         }
@@ -353,15 +251,6 @@ class ZenPayController extends Controller
         }
         
         return $isValid;
-    }
-
-    public function healthCheck()
-    {
-        $response = Http::withHeaders([
-            'x-api-key' => config('services.zenpay.api_key')
-        ])->get(config('services.zenpay.base_url') . '/v1/health');
-
-        return response()->json($response->json(), $response->status());
     }
 
 }

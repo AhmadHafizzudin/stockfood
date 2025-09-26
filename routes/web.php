@@ -163,27 +163,13 @@ if (!$is_published) {
             Route::any('callback', [SenangPayController::class, 'return_senang_pay'])->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
         });
 
-        //zenpay - Hosted Payment Page Integration
-        Route::group(['prefix' => 'zenpay', 'as' => 'zenpay-'], function () {
-            // Main payment route that Payment::generate_link() expects
+        //ZENPAY
+        Route::group(['prefix' => 'zenpay', 'as' => 'zenpay.'], function () {
             Route::get('pay', [ZenPayController::class, 'index'])->name('pay');
-            
-            // Create checkout session and redirect to hosted page
-            Route::post('checkout-create', [ZenPayController::class, 'createHostedPayment'])->name('checkout-create');
-
-            // Allow order checkout via GET (for simple redirects from APIs/apps)
-            Route::get('checkout-order/{order}', [ZenPayController::class, 'createHostedPayment'])->name('checkout-order');
-            
-            // Callback from ZenPay (webhook)
-            Route::any('callback', [ZenPayController::class, 'callback'])
-                ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-                ->name('callback');
-                
-            // Success redirect from ZenPay
-            Route::any('success', [ZenPayController::class, 'success'])->name('success');
-            
-            // Failed redirect from ZenPay
-            Route::any('failed', [ZenPayController::class, 'failed'])->name('failed');
+            Route::post('make-payment', [ZenPayController::class, 'make_payment'])->name('make_payment')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+            Route::any('callback', [ZenPayController::class, 'callback'])->name('callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+            Route::get('success', [ZenPayController::class, 'success'])->name('success');
+            Route::get('failed', [ZenPayController::class, 'failed'])->name('failed');
         });
     
 
