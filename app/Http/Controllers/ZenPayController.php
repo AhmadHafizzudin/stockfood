@@ -121,6 +121,7 @@ class ZenPayController extends Controller
             return redirect()->route('payment-fail')->with('error', $errorMessage);
 
         } catch (\Exception $e) {
+            Log::error('ZenPay API Call Error: ' . $e->getMessage());
             return redirect()->route('payment-fail')->with('error', 'Payment gateway error: ' . $e->getMessage());
         }
     }
