@@ -118,7 +118,7 @@ class ZenPayController extends Controller
             }
 
             // If API call fails, show error
-            $errorMessage = $response->json()['message'] ?? 'Payment session creation failed';
+            $errorMessage = $response->json() ?? 'Payment session creation failed';
             Log::error('ZenPay API Call Error: ' . $errorMessage);
             return redirect()->route('payment-fail')->with('error', $errorMessage);
 
