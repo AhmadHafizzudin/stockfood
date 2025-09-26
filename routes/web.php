@@ -168,8 +168,8 @@ if (!$is_published) {
             Route::get('pay', [ZenPayController::class, 'index'])->name('pay');
             Route::post('make-payment', [ZenPayController::class, 'make_payment'])->name('make_payment')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
             Route::any('callback', [ZenPayController::class, 'callback'])->name('callback')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
-            Route::post('success', [ZenPayController::class, 'success'])->name('success');
-            Route::post('failed', [ZenPayController::class, 'failed'])->name('failed');
+            Route::post('return', [ZenPayController::class, 'return'])->name('return');
+            // Route::post('failed', [ZenPayController::class, 'failed'])->name('failed');
         });
     
 

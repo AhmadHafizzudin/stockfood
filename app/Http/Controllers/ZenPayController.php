@@ -80,8 +80,8 @@ class ZenPayController extends Controller
             'email' => $payer->email ?? '',
             'amount' => number_format($payment_data->payment_amount, 2, '.', ''),
             'callback_url' => route('zenpay.callback'),
-            'return_url' => route('zenpay.success'),
-            'decline_url' => "",
+            'return_url' => route('zenpay.return'),
+            'decline_url' => route('zenpay.return'),
             'currency' => 'MYR',
             'timestamp' => now()->toISOString()
         ];
@@ -200,6 +200,26 @@ class ZenPayController extends Controller
         return redirect()->route('payment-fail')->with('error', 'Payment verification failed');
     }
 
+    public function return(Request $request)
+    {
+        $paymentId = session()->get('payment_id');
+        $requestData = $request->all();
+        $statusCode = $requestData['status_code'];
+
+
+        if ($paymentId || $statusCode === '1C' || $statusCode === '00') {
+            $data = $this->payment::where(['id' => $paymentId])->first();
+            if ($data && $data->is_paid) {
+                if (isset($data) && function_exists($data->success_hook)) {
+                    call_user_func($data->success_hook, $data);
+                }
+                return $this->payment_response($data, 'success');
+            }
+        }
+        
+        return redirect()->route('payment-fail')->with('error', 'Payment verification failed');
+    }
+
     public function failed(Request $request)
     {
         $paymentId = session()->get('payment_id');
@@ -216,6 +236,7 @@ class ZenPayController extends Controller
         
         return redirect()->route('payment-fail')->with('error', 'Payment failed');
     }
+
 
     /**
      * Verify ZenPay callback signature
