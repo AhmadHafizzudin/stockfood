@@ -12,7 +12,13 @@
         $icon = \App\CentralLogics\Helpers::get_business_settings('icon', false);
     @endphp
     <!-- Title -->
-    <title>{{ translate('messages.login') }} | {{$app_name??translate('STACKFOOD')}}</title>
+    @if(in_array($role, ['admin', 'admin_employee']))
+        <title>{{ translate('messages.admin_login') }} | {{$app_name??translate('STACKFOOD')}}</title>
+    @elseif(in_array($role, ['vendor', 'vendor_employee']))
+        <title>{{ translate('messages.restaurant_login') }} | {{$app_name??translate('STACKFOOD')}}</title>
+    @else
+        <title>{{ translate('messages.login') }} | {{$app_name??translate('STACKFOOD')}}</title>
+    @endif
 
     <!-- Favicon -->
     <link rel="shortcut icon" href="{{asset($icon ? 'storage/app/public/business/'.$icon : 'public/favicon.ico')}}">
@@ -31,29 +37,76 @@
 
 <body>
 <!-- ========== MAIN CONTENT ========== -->
-<main id="content" role="main" class="main auth-bg">
+@php
+    $loginTypeClass = '';
+    if(in_array($role, ['admin', 'admin_employee'])) {
+        $loginTypeClass = 'admin-login';
+    } elseif(in_array($role, ['vendor', 'vendor_employee'])) {
+        $loginTypeClass = 'restaurant-login';
+    }
+@endphp
+<main id="content" role="main" class="main auth-bg {{ $loginTypeClass }}">
     <!-- Content -->
     <div class="d-flex flex-wrap align-items-center justify-content-between">
         <div class="auth-content">
             <div class="content">
-                <h2 class="title text-uppercase">{{translate('messages.welcome_to')}} {{ $app_name??'STACKFOOD' }}</h2>
-                <p>
-                    {{translate('Manage_your_app_&_website_easily')}}
-                </p>
+                @if(in_array($role, ['admin', 'admin_employee']))
+                    <h2 class="title text-uppercase">{{translate('messages.welcome_to')}} {{ $app_name??'STACKFOOD' }} {{translate('messages.admin_panel')}}</h2>
+                    <p>
+                        {{translate('messages.manage_your_platform_efficiently')}}
+                    </p>
+                    <div class="mt-3">
+                        <span class="badge badge-primary">{{translate('messages.admin_access')}}</span>
+                    </div>
+                @elseif(in_array($role, ['vendor', 'vendor_employee']))
+                    <h2 class="title text-uppercase">{{translate('messages.welcome_to')}} {{ $app_name??'STACKFOOD' }} {{translate('messages.restaurant_panel')}}</h2>
+                    <p>
+                        {{translate('messages.manage_your_restaurant_operations')}}
+                    </p>
+                    <div class="mt-3">
+                        <span class="badge badge-success">{{translate('messages.restaurant_access')}}</span>
+                    </div>
+                @else
+                    <h2 class="title text-uppercase">{{translate('messages.welcome_to')}} {{ $app_name??'STACKFOOD' }}</h2>
+                    <p>
+                        {{translate('Manage_your_app_&_website_easily')}}
+                    </p>
+                @endif
             </div>
         </div>
         <div class="auth-wrapper">
             <div class="auth-wrapper-body auth-form-appear">
                 @php($systemlogo=\App\Models\BusinessSetting::where(['key'=>'logo'])->first())
                 @php($role = $role ?? null )
-                <a class="auth-logo mb-5" href="javascript:">
+                <a class="auth-logo mb-3" href="javascript:">
                     <img class="z-index-2 onerror-image"
                     src="{{ \App\CentralLogics\Helpers::get_full_url('business',$systemlogo?->value,$systemlogo?->storage[0]?->value ?? 'public', 'authfav') }}"
                     data-onerror-image="{{ dynamicAsset('/public/assets/admin/img/auth-fav.png') }}" alt="image">
                 </a>
+                
+                <!-- Login Type Switcher -->
+                <div class="text-center mb-4">
+                    <div class="login-type-switcher">
+                        <a href="{{ url('/login/admin') }}" class="login-switch-btn {{ in_array($role, ['admin', 'admin_employee']) ? 'active' : '' }}">
+                            <i class="tio-settings"></i> {{translate('messages.admin')}}
+                        </a>
+                        <a href="{{ url('/login/restaurant') }}" class="login-switch-btn {{ in_array($role, ['vendor', 'vendor_employee']) ? 'active' : '' }}">
+                            <i class="tio-shop"></i> {{translate('messages.restaurant')}}
+                        </a>
+                    </div>
+                </div>
+                
                 <div class="text-center">
                     <div class="auth-header mb-5">
-                        <h2 class="signin-txt">{{ translate('messages.Signin_To_Your_Panel')}}</h2>
+                        @if(in_array($role, ['admin', 'admin_employee']))
+                            <h2 class="signin-txt">{{ translate('messages.signin_to_admin_panel')}}</h2>
+                            <p class="text-muted">{{translate('messages.access_admin_dashboard')}}</p>
+                        @elseif(in_array($role, ['vendor', 'vendor_employee']))
+                            <h2 class="signin-txt">{{ translate('messages.signin_to_restaurant_panel')}}</h2>
+                            <p class="text-muted">{{translate('messages.access_restaurant_dashboard')}}</p>
+                        @else
+                            <h2 class="signin-txt">{{ translate('messages.Signin_To_Your_Panel')}}</h2>
+                        @endif
                     </div>
                 </div>
                 <!-- Content -->
@@ -437,6 +490,135 @@
         })
     </script>
 @endif
+
+<!-- Custom Login Type Styles -->
+<style>
+    /* Login Type Switcher Styles */
+    .login-type-switcher {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .login-switch-btn {
+        padding: 8px 16px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        background: rgba(255, 255, 255, 0.1);
+        color: #666;
+        backdrop-filter: blur(10px);
+    }
+    
+    .login-switch-btn:hover {
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+    
+    .login-switch-btn i {
+        margin-right: 5px;
+    }
+    
+    /* Admin Login Styles */
+    .admin-login .auth-wrapper {
+        border-top: 4px solid #667eea;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+    
+    .admin-login .auth-logo img {
+        filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.3));
+    }
+    
+    .admin-login .signin-txt {
+        color: #667eea;
+    }
+    
+    .admin-login .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+    }
+    
+    .admin-login .btn-primary:hover {
+        background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        transform: translateY(-2px);
+    }
+    
+    .admin-login .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .admin-login .login-switch-btn.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .admin-login .login-switch-btn:not(.active):hover {
+        border-color: #667eea;
+        color: #667eea;
+    }
+    
+    /* Restaurant Login Styles */
+    .restaurant-login .auth-wrapper {
+        border-top: 4px solid #f5576c;
+        box-shadow: 0 10px 30px rgba(245, 87, 108, 0.2);
+    }
+    
+    .restaurant-login .auth-logo img {
+        filter: drop-shadow(0 4px 8px rgba(245, 87, 108, 0.3));
+    }
+    
+    .restaurant-login .signin-txt {
+        color: #f5576c;
+    }
+    
+    .restaurant-login .btn-primary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border: none;
+    }
+    
+    .restaurant-login .btn-primary:hover {
+        background: linear-gradient(135deg, #ee7fe9 0%, #f3455a 100%);
+        transform: translateY(-2px);
+    }
+    
+    .restaurant-login .form-control:focus {
+        border-color: #f5576c;
+        box-shadow: 0 0 0 0.2rem rgba(245, 87, 108, 0.25);
+    }
+    
+    .restaurant-login .login-switch-btn.active {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border-color: #f5576c;
+    }
+    
+    .restaurant-login .login-switch-btn:not(.active):hover {
+        border-color: #f5576c;
+        color: #f5576c;
+    }
+    
+    .admin-login .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .restaurant-login .form-control:focus {
+        border-color: #f5576c;
+        box-shadow: 0 0 0 0.2rem rgba(245, 87, 108, 0.25);
+    }
+    
+    .auth-content .badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+    }
+</style>
 
 <!-- IE Support -->
 <script>
