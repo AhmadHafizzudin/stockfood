@@ -130,6 +130,8 @@
                     <!-- End forget password -->
 
 
+                    {{-- Kawanku Admin Captcha Function - Captcha display section --}}
+                    {{--
                     @php($recaptcha = \App\CentralLogics\Helpers::get_business_settings('recaptcha'))
                     @if(isset($recaptcha) && $recaptcha['status'] == 1)
                         <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
@@ -138,7 +140,7 @@
                         <div class="row p-2 d-none" id="reload-captcha">
                             <div class="col-6 pr-0">
                                 <input type="text" class="form-control form-control-lg border-0" name="custome_recaptcha"
-                                       id="custome_recaptcha" required placeholder="{{translate('Enter recaptcha value')}}" autocomplete="off" value="{{env('APP_MODE')=='dev'? session('six_captcha'):''}}">
+                                       id="custome_recaptcha" required placeholder="{{translate('Enter recaptcha value')}}" autocomplete="off" value="{{env('APP_MODE')=='dev'? session('six_captcha'):''}}"> 
                             </div>
                             <div class="col-6 bg-white rounded d-flex">
                                 <img src="<?php echo $custome_recaptcha->inline(); ?>" class="rounded w-100" />
@@ -152,7 +154,7 @@
                         <div class="row p-2" id="reload-captcha">
                             <div class="col-6 pr-0">
                                 <input type="text" class="form-control form-control-lg border-0" name="custome_recaptcha"
-                                       id="custome_recaptcha" required placeholder="{{translate('Enter recaptcha value')}}" autocomplete="off" value="{{env('APP_MODE')=='dev'? session('six_captcha'):''}}">
+                                       id="custome_recaptcha" required placeholder="{{translate('Enter recaptcha value')}}" autocomplete="off" value="{{env('APP_MODE')=='dev'? session('six_captcha'):''}}"> 
                             </div>
                             <div class="col-6 bg-white rounded d-flex">
                                 <img src="<?php echo $custome_recaptcha->inline(); ?>" class="rounded w-100" />
@@ -162,6 +164,7 @@
                             </div>
                         </div>
                     @endif
+                    --}}
 
                     <button type="submit" class="btn btn-lg btn-block btn-primary" id="signInBtn">{{translate('messages.sign_in')}}</button>
                 </form>
@@ -327,6 +330,8 @@
 
 
 <script>
+    // Kawanku Admin Captcha Function - Captcha reload JavaScript
+    /*
     $(document).on('click','.reloadCaptcha', function(){
         $.ajax({
             url: "{{ route('reload-captcha') }}",
@@ -345,6 +350,7 @@
             }
         });
     });
+    */
 </script>
 <!-- JS Plugins Init. -->
 <script>
@@ -363,6 +369,8 @@
     });
 </script>
 
+{{-- Kawanku Admin Captcha Function - Google reCAPTCHA script section --}}
+{{--
 @if(isset($recaptcha) && $recaptcha['status'] == 1)
     <script src="https://www.google.com/recaptcha/api.js?render={{$recaptcha['site_key']}}"></script>
 @endif
@@ -404,6 +412,7 @@
         });
     </script>
 @endif
+--}}
 {{-- recaptcha scripts end --}}
 
 

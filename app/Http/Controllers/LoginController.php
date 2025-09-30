@@ -99,9 +99,13 @@ class LoginController extends Controller
         $locale = $locals[$role];
         App::setLocale($locale);
 
+        // Kawanku Admin Captcha Function - Custom captcha generation
+        /*
         $custome_recaptcha = new CaptchaBuilder;
         $custome_recaptcha->build();
         Session::put('six_captcha', $custome_recaptcha->getPhrase());
+        */
+        $custome_recaptcha = null; // Set to null when captcha is disabled
 
         $email =  null;
         $password = null;
@@ -148,6 +152,8 @@ class LoginController extends Controller
             'role' => 'required'
         ]);
 
+        // Kawanku Admin Captcha Function - Google reCAPTCHA validation
+        /*
         $recaptcha = Helpers::get_business_settings('recaptcha');
         if (isset($recaptcha) && $recaptcha['status'] == 1 && !$request?->set_default_captcha) {
             $request->validate([
@@ -170,6 +176,7 @@ class LoginController extends Controller
             Toastr::error(translate('messages.ReCAPTCHA Failed'));
             return back();
         }
+        */
         if($request->role == 'admin_employee'){
             $data= Admin::where('email', $request->email)->where('role_id',1)->exists();
             if($data){
@@ -230,6 +237,8 @@ class LoginController extends Controller
         return redirect()->back()->withInput($request->only('email', 'remember'))->withErrors(['Credentials does not match.']);
     }
 
+    // Kawanku Admin Captcha Function - Reload captcha method
+    /*
     public function reloadCaptcha()
     {
         $custome_recaptcha = new CaptchaBuilder;
@@ -240,6 +249,7 @@ class LoginController extends Controller
             'view' => view('auth.custom-captcha', compact('custome_recaptcha'))->render()
         ], 200);
     }
+    */
 
     public function reset_password_request(Request $request)
     {
