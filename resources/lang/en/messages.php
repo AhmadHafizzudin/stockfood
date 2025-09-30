@@ -6931,4 +6931,6 @@
   'Restaurant_Tax_Reports' => 'Restaurant Tax Reports',
   'landing_page_text_updated' => 'Landing page text updated',
   'The selected gateway is invalid.' => 'The selected gateway is invalid.',
+  'Are you sure? This will reset all auto-increment values to 1. This action cannot be undone.' => 'Are you sure? This will reset all auto-increment values to 1. This action cannot be undone.',
+  'Reset Auto-Increment' => 'Reset Auto-Increment',
 );

@@ -7,6 +7,9 @@ use App\Http\Controllers\Admin\CashBackController;
 
 Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
+    // Database Reset Route (Outside Admin namespace)
+    Route::get('business-settings/reset-auto-increment', 'DatabaseResetController@resetAutoIncrement')->name('business-settings.reset-auto-increment');
+
     Route::group(['middleware' => ['admin','actch:admin_panel']], function () {
         Route::post('search-routing', 'SearchRoutingController@index')->name('search.routing');
         Route::get('recent-search', 'SearchRoutingController@recentSearch')->name('recent.search');

@@ -42,6 +42,11 @@
                     <div class="text-right mt-3">
                         <button type="{{ env('APP_MODE') != 'demo' ? 'submit' : 'button' }}"
                         class="btn btn--primary call-demo" id="submitForm">{{ translate('Clear') }}</button>
+                        <a href="{{ route('admin.business-settings.reset-auto-increment') }}" 
+                           class="btn btn--warning" 
+                           onclick="return confirm('{{ translate('Are you sure? This will reset all auto-increment values to 1. This action cannot be undone.') }}')">
+                            {{ translate('Reset Auto-Increment') }}
+                        </a>
                     </div>
                 </form>
             </div>
