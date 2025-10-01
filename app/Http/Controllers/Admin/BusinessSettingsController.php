@@ -872,7 +872,8 @@ class BusinessSettingsController extends Controller
             ]);
             // Ensure cached business settings are refreshed so toggle changes apply immediately
             \Illuminate\Support\Facades\Cache::forget('business_settings_all_data');
-            \Illuminate\Support\Facades\Config::forget($request->toggle_type . '_conf');
+        \Illuminate\Support\Facades\Cache::forget('business_settings_keys');
+        \Illuminate\Support\Facades\Config::forget($request->toggle_type . '_conf');
             Toastr::success(translate('messages.payment_settings_updated'));
             return back();
         }
