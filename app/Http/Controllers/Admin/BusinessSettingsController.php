@@ -863,10 +863,16 @@ class BusinessSettingsController extends Controller
     public function payment_config_update(Request $request)
     {
         if ($request->toggle_type) {
+            $rawKeys = ['offline_payment_status', 'wallet_status'];
             Helpers::businessUpdateOrInsert(['key' => $request->toggle_type], [
-                'value' =>  $request->toggle_type == 'offline_payment_status' ? $request?->status : json_encode(['status' => $request?->status]),
+                'value' => in_array($request->toggle_type, $rawKeys)
+                    ? ($request->has('status') ? 1 : null)
+                    : json_encode(['status' => $request?->status]),
                 'updated_at' => now()
             ]);
+            // Ensure cached business settings are refreshed so toggle changes apply immediately
+            \Illuminate\Support\Facades\Cache::forget('business_settings_all_data');
+            \Illuminate\Support\Facades\Config::forget($request->toggle_type . '_conf');
             Toastr::success(translate('messages.payment_settings_updated'));
             return back();
         }

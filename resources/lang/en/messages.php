@@ -6945,4 +6945,10 @@
   'restaurant_access' => 'Restaurant access',
   'signin_to_restaurant_panel' => 'Signin to restaurant panel',
   'access_restaurant_dashboard' => 'Access restaurant dashboard',
+  'Want_to_enable_custom_date_order_status_for_this_restaurant?' => 'Want to enable custom date order status for this restaurant?',
+  'If_enabled_Customers_will_be_able_to_select_Wallet_as_a_payment_method_during_checkout' => 'If enabled Customers will be able to select Wallet as a payment method during checkout',
+  'By Turning ON Wallet Payment Option' => 'By Turning ON Wallet Payment Option',
+  'By Turning OFF Wallet Payment Option' => 'By Turning OFF Wallet Payment Option',
+  'Customers will be able to select Wallet as a payment method during checkout if they have sufficient balance.' => 'Customers will be able to select Wallet as a payment method during checkout if they have sufficient balance.',
+  'Customers will not be able to select Wallet as a payment method during checkout.' => 'Customers will not be able to select Wallet as a payment method during checkout.',
 );

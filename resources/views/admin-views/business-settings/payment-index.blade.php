@@ -44,7 +44,7 @@
             <div class="card-body">
                 <div class="row g-4">
                     <div class="col-md-4">
-                        @php($config=\App\CentralLogics\Helpers::get_business_settings('cash_on_delivery'))
+                        @php($codConfig=\App\CentralLogics\Helpers::get_business_settings('cash_on_delivery'))
                         <form action="{{route('admin.business-settings.payment-method-update',['cash_on_delivery'])}}"
                             method="post" id="cash_on_delivery_status_form">
                             @csrf
@@ -67,7 +67,7 @@
                                     data-text-on="<p>{{ translate('Customers will not be able to select COD as a payment method during checkout. Please review your settings and enable COD if you wish to offer this payment option to customers.') }}</p>"
                                     data-text-off="<p>{{ translate('Customers will be able to select COD as a payment method during checkout.') }}</p>"
                                     class="status toggle-switch-input dynamic-checkbox"
-                                       name="status" value="1" {{$config?($config['status']==1?'checked':''):''}}>
+                                       name="status" value="1" {{ (is_array($codConfig) ? (data_get($codConfig,'status')==1) : false) ? 'checked' : '' }}>
                                 <span class="toggle-switch-label text">
                                     <span class="toggle-switch-indicator"></span>
                                 </span>
@@ -106,7 +106,7 @@
                         </form>
                     </div>
                     <div class="col-md-4">
-                        @php($Offline_Payment=\App\CentralLogics\Helpers::get_business_settings('offline_payment_status'))
+                        @php($Offline_Payment=\App\CentralLogics\Helpers::get_business_settings('offline_payment_status', false))
                         <form action="{{route('admin.business-settings.payment-method-update',['offline_payment_status'])}}"
                             method="post" id="offline_payment_status_form">
                             @csrf
@@ -130,6 +130,36 @@
                                         class="status toggle-switch-input dynamic-checkbox"
 
                                         name="status" value="1" {{$Offline_Payment == 1?'checked':''}}>
+                                <span class="toggle-switch-label text">
+                                    <span class="toggle-switch-indicator"></span>
+                                </span>
+                            </label>
+                        </form>
+                    </div>
+                    <div class="col-md-4">
+                        @php($walletVal=\App\CentralLogics\Helpers::get_business_settings('wallet_status', false))
+                        <form action="{{route('admin.business-settings.payment-method-update',['wallet_status'])}}"
+                            method="post" id="wallet_status_form">
+                            @csrf
+                            <label class="toggle-switch h--45px toggle-switch-sm d-flex justify-content-between border rounded px-3 py-0 form-control">
+                                <span class="pr-1 d-flex align-items-center switch--label">
+                                    <span class="line--limit-1">
+                                        {{translate('Wallet')}}
+                                    </span>
+                                    <span class="form-label-secondary text-danger d-flex" data-toggle="tooltip" data-placement="right" data-original-title="{{translate('If_enabled_Customers_will_be_able_to_select_Wallet_as_a_payment_method_during_checkout')}}"><img src="{{dynamicAsset('public/assets/admin/img/info-circle.svg')}}" alt="Toggle Wallet"> * </span>
+                                </span>
+                                <input type="hidden" name="toggle_type" value="wallet_status">
+                                <input  type="checkbox" id="wallet_status"
+                                       data-id="wallet_status"
+                                       data-type="status"
+                                       data-image-on="{{ dynamicAsset('/public/assets/admin/img/modal/digital-payment-on.png') }}"
+                                       data-image-off="{{ dynamicAsset('/public/assets/admin/img/modal/digital-payment-off.png') }}"
+                                       data-title-on="{{ translate('By Turning ON Wallet Payment Option') }}"
+                                       data-title-off="{{ translate('By Turning OFF Wallet Payment Option') }}"
+                                       data-text-on="<p>{{ translate('Customers will be able to select Wallet as a payment method during checkout if they have sufficient balance.') }}</p>"
+                                       data-text-off="<p>{{ translate('Customers will not be able to select Wallet as a payment method during checkout.') }}</p>"
+                                       class="status toggle-switch-input dynamic-checkbox"
+                                       name="status" value="1" {{$walletVal==1?'checked':''}}>
                                 <span class="toggle-switch-label text">
                                     <span class="toggle-switch-indicator"></span>
                                 </span>

@@ -360,6 +360,224 @@
                             </div>
                         </div>
                     @endif
+
+                    @php($walletStatus = \App\CentralLogics\Helpers::get_business_settings('wallet_status'))
+                    @php($walletEnabled = is_array($walletStatus) ? ($walletStatus['status'] ?? 0) : (((string)$walletStatus) === '1' ? 1 : 0))
+                    @if($walletEnabled == 1)
+                        @php($user=\App\Models\User::where(['id'=>$order['user_id']])->first())
+                        @php($partiallyPaid = (float)($order->partially_paid_amount ?? 0))
+                        @php($unpaidAmount = (float)$order->order_amount - $partiallyPaid)
+                        @if($unpaidAmount > 0)
+                            <div class="col-md-6 mb-4 cursor-pointer">
+                                <div class="card">
+                                    <div class="card-body pt-2 h-70px">
+                                        @if((float)($user?->wallet_balance ?? 0) >= $unpaidAmount)
+                                            <form method="GET" action="{{ route('wallet.payment') }}">
+                                                <input type="hidden" name="order_id" value="{{$order->id}}">
+                                                <input type="hidden" name="user_id" value="{{$order->user_id}}">
+                                                <button class="btn btn-block click-if-alone d-flex align-items-center justify-content-center" type="submit">
+                                                    <img width="150" src="{{ dynamicAsset('public/assets/admin/img/wallet.png') }}" alt="Wallet"/>
+                                                    <span class="ml-2">{{ translate('Pay_with_Wallet') }}</span>
+                                                    <span class="badge badge-soft-success ml-2">{{ \App\CentralLogics\Helpers::format_currency($user?->wallet_balance ?? 0) }}</span>
+                                                </button>
+                                                <div class="text-center mt-1">
+                                                    <small class="text-muted">{{ translate('messages.Unpaid_Amount') }}: {{ \App\CentralLogics\Helpers::format_currency($unpaidAmount) }}</small>
+                                                </div>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-block d-flex align-items-center justify-content-center" type="button" disabled>
+                                                <img width="150" src="{{ dynamicAsset('public/assets/admin/img/wallet.png') }}" alt="Wallet"/>
+                                                <span class="ml-2">{{ translate('Pay_with_Wallet') }}</span>
+                                                <span class="badge badge-soft-secondary ml-2">{{ \App\CentralLogics\Helpers::format_currency($user?->wallet_balance ?? 0) }}</span>
+                                            </button>
+                                            <div class="text-center mt-1">
+                                                <small class="text-danger">{{ translate('messages.insufficient_balance') }}</small>
+                                                <small class="text-muted d-block">{{ translate('messages.Unpaid_Amount') }}: {{ \App\CentralLogics\Helpers::format_currency($unpaidAmount) }}</small>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('senang_pay'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body pt-1 h-70px">
+                                    @php($config=\App\CentralLogics\Helpers::get_business_settings('senang_pay'))
+                                    @php($user=\App\Models\User::where(['id'=>$order['user_id']])->first())
+                                    @php($secretkey = $config['secret_key'])
+                                    @php($data = new \stdClass())
+                                    @php($data->merchantId = $config['merchant_id'])
+                                    @php($data->detail = 'payment')
+                                    @php($data->order_id = $order->id)
+                                    @php($data->amount = $order->order_amount - $order->partially_paid_amount)
+                                    @php($data->name = $user->f_name.' '.$user->l_name)
+                                    @php($data->email = $user->email)
+                                    @php($data->phone = $user->phone)
+                                    @php($data->hashed_string = md5($secretkey . urldecode($data->detail) . urldecode($data->amount) . urldecode($data->order_id)))
+
+                                    <form name="order" method="post"
+                                          action="https://{{env('APP_MODE')=='live'?'app.senangpay.my':'sandbox.senangpay.my'}}/payment/{{$config['merchant_id']}}">
+                                        <input type="hidden" name="detail" value="{{$data->detail}}">
+                                        <input type="hidden" name="amount" value="{{$data->amount}}">
+                                        <input type="hidden" name="order_id" value="{{$data->order_id}}">
+                                        <input type="hidden" name="name" value="{{$data->name}}">
+                                        <input type="hidden" name="email" value="{{$data->email}}">
+                                        <input type="hidden" name="phone" value="{{$data->phone}}">
+                                        <input type="hidden" name="hash" value="{{$data->hashed_string}}">
+                                    </form>
+
+                                    <button class="btn btn-block click-if-alone" type="button"
+                                            onclick="{{\App\CentralLogics\Helpers::currency_code()=='MYR'?"document.order.submit()":"toastr.error('Your currency is not supported by Senang Pay.')"}}">
+                                        <img width="100"
+                                             src="{{dynamicAsset('public/assets/admin/img/senangpay.png')}}"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('zenpay'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body pt-1 h-70px">
+                                    @php($user=\App\Models\User::where(['id'=>$order['user_id']])->first())
+                                    @php($secretkey = $config['secret_key'])
+                                    @php($data = new \stdClass())
+                                    @php($data->biller_code = $config['merchant_id'])
+                                    @php($data->order_id = $order->id)
+                                    @php($data->amount = $order->order_amount - $order->partially_paid_amount)
+                                    @php($data->email = $user->email)
+                                    
+                                    <!-- ZenPay Hosted Payment Page Integration -->
+                                    <form id="zenpay-form" method="post" action="{{route('zenpay-checkout-create')}}">
+                                        @csrf
+                                        <input type="hidden" name="biller_code" value="{{$data->biller_code}}">
+                                        <input type="hidden" name="order_id" value="{{$data->order_id}}">
+                                        <input type="hidden" name="email" value="{{$data->email}}">
+                                        <input type="hidden" name="amount" value="{{number_format($data->amount, 2, '.', '')}}">
+                                        <input type="hidden" name="currency" value="MYR">
+                                        <input type="hidden" name="callback_url" value="{{route('zenpay-callback')}}">
+                                        <input type="hidden" name="return_url" value="{{route('zenpay-success')}}">
+                                        <input type="hidden" name="decline_url" value="{{route('zenpay-failed')}}">
+                                    </form>
+
+                                    <button class="btn btn-block click-if-alone" type="button"
+                                            onclick="{{\App\CentralLogics\Helpers::currency_code()=='MYR'?"$('#zenpay-form').submit()":"toastr.error('Your currency is not supported by ZenPay.')"}}">
+                                        <img width="100"
+                                             src="{{dynamicAsset('public/assets/admin/img/zenpay.png')}}"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('flutterwave'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body pt-2 h-70px">
+                                    <form method="POST" action="{{ route('flutterwave_pay',request()->getQueryString()) }}">
+                                        {{ csrf_field() }}
+
+                                        <button class="btn btn-block click-if-alone" type="submit">
+                                            <img width="200"
+                                                 src="{{dynamicAsset('public/assets/admin/img/fluterwave.png')}}"/>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('mercadopago'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body pt-2 h-70px">
+                                    <a class="btn btn-block click-if-alone" href="{{route('mercadopago.index',request()->getQueryString())}}">
+                                        <img width="150"
+                                                src="{{dynamicAsset('public/assets/admin/img/MercadoPago_(Horizontal).svg')}}"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('paymob_accept'))
+                    @if($config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body h-100px">
+                                    <form class="needs-validation" method="POST" id="payment-form-paymob"
+                                        action="{{route('paymob-credit')}}">
+                                        {{ csrf_field() }}
+                                        <button class="btn btn-block click-if-alone" type="submit">
+                                            <img width="150"
+                                                src="{{dynamicAsset('public/assets/admin/img/paymob.png')}}"/>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('bkash'))
+                    @if(isset($config)  && $config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body h--100px">
+                                    <a class="btn btn-block click-if-alone" href="{{route('bkash-make-payment',request()->getQueryString())}}">
+                                        <img class="initial--40" src="{{dynamicAsset('public/assets/admin/img/bkash.png')}}"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('paytabs'))
+                    @if(isset($config)  && $config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body h-100px">
+                                    <button class="btn btn-block click-if-alone mt-n-11px" onclick="location.href='{{route('paytabs-payment')}}'">
+                                        <img width="150" src="{{dynamicAsset('public/assets/admin/img/paytabs.png')}}"/>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('paytm'))
+                    @if(isset($config) && $config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body h-100px">
+                                    <a class="btn btn-block click-if-alone" href="{{route('paytm-payment',request()->getQueryString())}}">
+                                        <img class="initial-70" src="{{dynamicAsset('public/assets/admin/img/paytm.png')}}"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    @php($config=\App\CentralLogics\Helpers::get_business_settings('liqpay'))
+                    @if(isset($config) && $config['status'])
+                        <div class="col-md-6 mb-4 cursor-pointer">
+                            <div class="card">
+                                <div class="card-body h-100px">
+                                    <a class="btn btn-block click-if-alone" href="{{route('liqpay-payment',request()->getQueryString())}}">
+                                        <img class="initial-70 mt-0" src="{{dynamicAsset('public/assets/admin/img/liqpay4.png')}}"/>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </section>
