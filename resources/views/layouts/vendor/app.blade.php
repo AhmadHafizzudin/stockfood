@@ -39,7 +39,7 @@
     <link rel="stylesheet" href="{{dynamicAsset('public/assets/admin/css/toastr.css')}}">
 </head>
 
-<body class="footer-offset">
+<body class="footer-offset vendor-theme">
 
     @if (env('APP_MODE')=='demo')
     <div class="direction-toggle">
@@ -871,8 +871,29 @@
         });
 
 
-</script>
-
-
+<style>
+/* Soft Vendor Sidebar Theme (Restaurant) */
+.vendor-theme .navbar-vertical-content.bg-334257 {
+  background: linear-gradient(180deg, #fff5f7 0%, #ffedf3 100%);
+}
+.vendor-theme .navbar-vertical-aside .nav-link {
+  color: #5a2d34;
+}
+.vendor-theme .navbar-vertical-aside .nav-link .nav-icon {
+  color: #f5576c;
+}
+.vendor-theme .navbar-vertical-aside .nav-link:hover {
+  background-color: rgba(245,87,108,0.10);
+}
+.vendor-theme .navbar-vertical-aside .navbar-vertical-aside-has-menu.active > .nav-link,
+.vendor-theme .navbar-vertical-aside .nav-item.active > .nav-link {
+  background-color: rgba(245,87,108,0.10);
+  border-left: 3px solid #f5576c;
+}
+.vendor-theme .sidebar--badge-container .badge {
+  background-color: rgba(245,87,108,0.15);
+  color: #5a2d34;
+}
+</style>
 </body>
 </html>
