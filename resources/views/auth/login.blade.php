@@ -95,6 +95,13 @@
                         </a>
                     </div>
                 </div>
+                <div class="text-center mb-3">
+                    <!-- Admin and Landing URL -->
+                    <a href="{{ route('home') }}" class="btn btn-sm btn-primary">
+                        <i class="tio-home"></i> Back to Landing Page
+                    </a>
+                    <!-- End of Admin and Landing URL -->
+                </div>
                 
                 <div class="text-center">
                     <div class="auth-header mb-5">

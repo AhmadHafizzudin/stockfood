@@ -46,6 +46,44 @@
         </style>
     @endif
     @stack('css_or_js')
+    <style>
+        /* Header visibility improvements */
+        .header-wrapper {
+            background-color: rgba(0,0,0,0.55);
+            border-radius: 12px;
+            padding: 8px 16px;
+        }
+        /* Menu links: white text with yellow hover */
+        .menu .menu-link {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .menu .menu-link:hover {
+            color: #ffd60a !important;
+            text-decoration: none;
+        }
+        /* Dropdown styling: darker background, white text */
+        .header-wrapper .dropdown-list {
+            background: rgba(0,0,0,0.85);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+        .header-wrapper .dropdown-list a {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+        .header-wrapper .dropdown-list a:hover {
+            color: #ffd60a !important;
+        }
+        /* Language dropdown button contrast */
+        .dropdown--btn {
+            color: #ffffff !important;
+        }
+        .btn-base {
+            background: rgba(0,0,0,0.65);
+            color: #ffffff !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -199,6 +237,11 @@
                             <a href="{{ route('deliveryman.create') }}">{{ translate('messages.join_as_deliveryman') }}</a>
                         </li>
                         @endif
+                        <li>
+                            <!-- Admin and Landing URL -->
+                            <a href="{{ route('login', ['tab' => 'admin']) }}">{{ translate('messages.admin') }}</a>
+                            <!-- End of Admin and Landing URL -->
+                        </li>
                     </ul>
                 </div>
                 @endif
@@ -256,7 +299,7 @@
                                             <rect y="0.349609" width="46" height="46" rx="23"
                                                 fill="url(#paint0_radial_246_199)" />
                                             <path
-                                                d="M25.9667 23.3466L19.3001 29.5718C19.1353 29.7363 18.8556 30.0163 18.8556 30.0163C18.8556 30.0163 18.691 30.405 18.8558 30.5696L19.3803 31.0939C19.5448 31.2588 19.7648 31.3496 19.9992 31.3496C20.2336 31.3496 20.4533 31.2588 20.618 31.0939L27.7448 23.9672C27.9101 23.802 28.0006 23.5813 28 23.3466C28.0006 23.1109 27.9102 22.8904 27.7448 22.7251L20.6246 15.6053C20.46 15.4404 20.2403 15.3496 20.0057 15.3496C19.7713 15.3496 19.5516 15.4404 19.3868 15.6053L18.8624 16.1296C18.5212 16.4708 19.0456 16.7863 19.3868 17.1274L25.9667 23.3466Z"
+                                                d="M25.9667 23.3466L19.3001 29.5718C19.1353 29.7363 18.8556 30.0163 18.8556 30.0163C18.8556 30.0163 18.691 30.405 18.8558 30.5696L19.3803 31.0939C19.5448 31.2588 19.7648 31.3496 19.9992 31.3496C20.2333 31.3496 20.4533 31.2588 20.618 31.0939L27.7448 23.9672C27.9101 23.802 28.0006 23.5813 28 23.3466C28.0006 23.1109 27.9102 22.8904 27.7448 22.7251L20.6246 15.6053C20.46 15.4404 20.2403 15.3496 20.0057 15.3496C19.7713 15.3496 19.5516 15.4404 19.3868 15.6053L18.8624 16.1296C18.5212 16.4708 19.0456 16.7863 19.3868 17.1274L25.9667 23.3466Z"
                                                 fill="white" />
                                             <defs>
                                                 <radialGradient id="paint0_radial_246_199" cx="0" cy="0" r="1"
@@ -641,3 +684,4 @@
     </body>
 
     </html>
+
