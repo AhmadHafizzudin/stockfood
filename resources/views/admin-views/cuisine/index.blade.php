@@ -102,7 +102,7 @@
                             </td>
                             <td>
                             <span class="d-block font-size-sm text-body pl-2">
-                                {{Str::limit($cu['name'], 20,'...')}}
+                                {{ Str::limit($cu->getRawOriginal('name'), 20, '...') }}
                             </span>
                             </td>
                             <td>

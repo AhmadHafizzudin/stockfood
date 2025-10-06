@@ -870,6 +870,46 @@
             event.preventDefault();
         });
 
+    <style>
+      /* Hide non-default language tabs and forms globally */
+      .lang_link, .lang_link1, .update-lang_link { display: none !important; }
+      #default-link { display: inline-block !important; }
+      /* In some views, default groups use class default-form or id patterns like default-form1 */
+      .lang_form:not(#default-form):not(.default-form):not([id^="default-form"]) { display: none !important; }
+    </style>
+    <script>
+      // Auto-fill other language inputs with Default values before submit (UI-only approach)
+      document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+
+        const defaultGroups = form.querySelectorAll('.lang_form#default-form, .lang_form.default-form, .lang_form[id^="default-form"]');
+        if (defaultGroups.length === 0) return;
+
+        const otherGroups = form.querySelectorAll('.lang_form:not(#default-form):not(.default-form):not([id^="default-form"])');
+
+        defaultGroups.forEach(function(defaultGroup) {
+          const defInputs = defaultGroup.querySelectorAll('input:not([type="file"]):not([name="lang[]"]), textarea, select');
+          defInputs.forEach(function(defInput) {
+            const name = defInput.name;
+            if (!name) return;
+
+            otherGroups.forEach(function(group) {
+              const target = group.querySelector('[name="'+CSS.escape(name)+'"]');
+              if (!target) return;
+
+              if (defInput.type === 'checkbox' || defInput.type === 'radio') {
+                target.checked = defInput.checked;
+              } else {
+                target.value = defInput.value;
+              }
+              const evt = new Event('change', { bubbles: true });
+              target.dispatchEvent(evt);
+            });
+          });
+        });
+      }, true);
+    </script>
 
 <style>
 /* Soft Vendor Sidebar Theme (Restaurant) */

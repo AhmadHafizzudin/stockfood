@@ -50,9 +50,11 @@ class Cuisine extends Model
     protected static function boot()
     {
         parent::boot();
-        static::created(function ($cuisine) {
-            $cuisine->slug = $cuisine->generateSlug($cuisine->name);
-            $cuisine->save();
+        // Generate slug BEFORE first insert to guarantee it is saved with the initial record
+        static::creating(function ($cuisine) {
+            // Use the current in-memory name set by controller; getRawOriginal can be null on creating
+            $baseName = $cuisine->name;
+            $cuisine->slug = $cuisine->generateSlug($baseName);
         });
         static::saved(function ($model) {
             if($model->isDirty('image')){
