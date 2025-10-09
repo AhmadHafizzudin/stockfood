@@ -401,6 +401,10 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::put('payment-method', 'OrderController@update_payment_method');
             Route::put('offline-payment', 'OrderController@offline_payment');
             Route::put('offline-payment-update', 'OrderController@update_offline_payment_info');
+            // Grab delivery endpoints
+            Route::post('place-grab', 'OrderController@place_order_grab');
+            Route::get('track-grab', 'OrderController@track_order_grab');
+            Route::put('cancel-grab', 'OrderController@cancel_order_grab');
         });
         Route::get('getPendingReviews', 'OrderController@getPendingReviews');
 

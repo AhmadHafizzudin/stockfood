@@ -424,6 +424,10 @@ Route::group(['namespace' => 'Admin', 'as' => 'admin.'], function () {
 
             Route::post('payment-method-update', 'BusinessSettingsController@payment_config_update')->name('payment-method-update');
 
+            // Delivery Service Settings
+            Route::get('delivery-service', 'BusinessSettingsController@delivery_service_index')->name('delivery-service');
+            Route::post('delivery-service-update', 'BusinessSettingsController@delivery_service_config_update')->name('delivery-service-update');
+
             Route::get('pages/terms-and-conditions', 'BusinessSettingsController@terms_and_conditions')->name('terms-and-conditions');
             Route::post('pages/terms-and-conditions', 'BusinessSettingsController@terms_and_conditions_update');
 

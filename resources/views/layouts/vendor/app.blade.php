@@ -870,14 +870,9 @@
             event.preventDefault();
         });
 
-    <style>
-      /* Hide non-default language tabs and forms globally */
-      .lang_link, .lang_link1, .update-lang_link { display: none !important; }
-      #default-link { display: inline-block !important; }
-      /* In some views, default groups use class default-form or id patterns like default-form1 */
-      .lang_form:not(#default-form):not(.default-form):not([id^="default-form"]) { display: none !important; }
-    </style>
-    <script>
+
+
+<script>
       // Auto-fill other language inputs with Default values before submit (UI-only approach)
       document.addEventListener('submit', function(e) {
         const form = e.target;
@@ -910,29 +905,45 @@
         });
       }, true);
     </script>
-
 <style>
-/* Soft Vendor Sidebar Theme (Restaurant) */
+
+      /* Hide non-default language tabs and forms globally */
+      .lang_link, .lang_link1, .update-lang_link { display: none !important; }
+      #default-link { display: inline-block !important; }
+      /* In some views, default groups use class default-form or id patterns like default-form1 */
+      .lang_form:not(#default-form):not(.default-form):not([id^="default-form"]) { display: none !important; }
+</style>
+<style>
+/* Reddish Dark Vendor Sidebar Theme (Restaurant) */
 .vendor-theme .navbar-vertical-content.bg-334257 {
-  background: linear-gradient(180deg, #fff5f7 0%, #ffedf3 100%);
+  background: linear-gradient(180deg, #2b0f12 0%, #1a0a0c 100%); /* deep red/oxblood gradient */
 }
 .vendor-theme .navbar-vertical-aside .nav-link {
-  color: #5a2d34;
+  color: #f3f4f6; /* very light text for contrast */
 }
 .vendor-theme .navbar-vertical-aside .nav-link .nav-icon {
-  color: #f5576c;
+  color: #fca5a5; /* soft red icons */
 }
 .vendor-theme .navbar-vertical-aside .nav-link:hover {
-  background-color: rgba(245,87,108,0.10);
+  background-color: rgba(252,165,165,0.12); /* light red hover */
 }
 .vendor-theme .navbar-vertical-aside .navbar-vertical-aside-has-menu.active > .nav-link,
 .vendor-theme .navbar-vertical-aside .nav-item.active > .nav-link {
-  background-color: rgba(245,87,108,0.10);
-  border-left: 3px solid #f5576c;
+  background-color: rgba(252,165,165,0.18);
+  border-left: 3px solid #fb7185; /* rose accent */
+}
+.vendor-theme .navbar-vertical-aside .nav-item.active .nav-icon {
+  color: #fb7185; /* active icon accent in rose */
+}
+.vendor-theme .nav-subtitle {
+  color: #fca5a5; /* readable section title with soft red */
+}
+.vendor-theme .nav-sub { /* Ensure submenu uses reddish dark background */
+  background-color: #1a0a0c !important;
 }
 .vendor-theme .sidebar--badge-container .badge {
-  background-color: rgba(245,87,108,0.15);
-  color: #5a2d34;
+  background-color: rgba(248,113,113,0.20); /* badge with red tint */
+  color: #fde68a; /* warm readable text */
 }
 </style>
 </body>

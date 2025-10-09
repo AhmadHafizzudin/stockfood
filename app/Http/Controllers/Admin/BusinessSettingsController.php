@@ -3615,5 +3615,79 @@ class BusinessSettingsController extends Controller
         return back();
     }
 
+    public function delivery_service_index()
+    {
+        $published_status = addon_published_status('Gateways');
+        $data_values = Setting::whereIn('settings_type', ['delivery_config'])
+            ->whereIn('key_name', ['grab', 'lalamove'])
+            ->get();
+        return view('admin-views.business-settings.delivery-service-index', compact('published_status', 'data_values'));
+    }
+
+    public function delivery_service_config_update(Request $request)
+    {
+        if (env('APP_MODE') == 'demo') {
+            Toastr::info(translate('messages.update_option_is_disable_for_demo'));
+            return back();
+        }
+
+        $request['status'] = $request->status ?? 0;
+        $validation = [
+            'gateway' => 'required|in:grab,lalamove',
+            'mode' => 'required|in:live,test'
+        ];
+
+        $additional_data = [];
+        if ($request['gateway'] == 'grab') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'secret_key' => 'required_if:status,1',
+                'callback_url' => 'required_if:status,1',
+                'merchant_id' => 'nullable'
+            ];
+        } elseif ($request['gateway'] == 'lalamove') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'secret_key' => 'required_if:status,1',
+                'callback_url' => 'required_if:status,1',
+                'merchant_id' => 'nullable'
+            ];
+        }
+
+        $request->validate(array_merge($validation, $additional_data));
+
+        $settings = Setting::where('key_name', $request['gateway'])->where('settings_type', 'delivery_config')->first();
+        $additional_data_image = $settings && $settings->additional_data ? json_decode($settings->additional_data) : null;
+        $storage = $additional_data_image?->storage ?? 'public';
+
+        if ($request->has('gateway_image')) {
+            $gateway_image = $this->file_uploader('delivery_modules/gateway_image/', 'png', $request['gateway_image'], $additional_data_image != null ? $additional_data_image->gateway_image : '');
+            $storage = Helpers::getDisk();
+        } else {
+            $gateway_image = $additional_data_image != null ? $additional_data_image->gateway_image : '';
+        }
+
+        $delivery_additional_data = [
+            'gateway_title' => $request['gateway_title'] ?? $request['gateway'],
+            'gateway_image' => $gateway_image,
+            'storage' => $storage,
+        ];
+
+        $validator = Validator::make($request->all(), array_merge($validation, $additional_data));
+
+        Setting::updateOrCreate(['key_name' => $request['gateway'], 'settings_type' => 'delivery_config'], [
+            'key_name' => $request['gateway'],
+            'live_values' => $validator->validate(),
+            'test_values' => $validator->validate(),
+            'settings_type' => 'delivery_config',
+            'mode' => $request['mode'],
+            'is_active' => $request['status'],
+            'additional_data' => json_encode($delivery_additional_data),
+        ]);
+
+        Toastr::success(translate('messages.configuration_updated_successfully'));
+        return back();
+    }
+
 
 }

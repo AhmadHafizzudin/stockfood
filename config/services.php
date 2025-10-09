@@ -35,10 +35,13 @@ return [
     ],
 
     'grab' => [
-    'client_id' => env('GRAB_CLIENT_ID'),
-    'client_secret' => env('GRAB_CLIENT_SECRET'),
-    'sandbox_url' => env('GRAB_SANDBOX_URL'),
-    'production_url' => env('GRAB_PRODUCTION_URL'),
+        // Food Delivery KawanKu setup: fill these when you receive credentials
+        'client_id' => env('GRAB_CLIENT_ID'),
+        'client_secret' => env('GRAB_CLIENT_SECRET'),
+        'sandbox_url' => env('GRAB_SANDBOX_URL'),
+        'production_url' => env('GRAB_PRODUCTION_URL'),
+        // Food Delivery KawanKu setup: optional webhook callback URL
+        'callback_url' => env('GRAB_CALLBACK_URL'),
     ],
 
     'zenpay' => [
@@ -50,4 +53,16 @@ return [
         'decline_url'  => env('ZENPAY_DECLINE_URL'),
     ],
 
+    // Food Delivery KawanKu setup: Lalamove API credentials placeholders
+    'lalamove' => [
+        // Region code (e.g., MY, SG, PH); confirm with your account
+        'region' => env('LALAMOVE_REGION', 'MY'),
+        // Toggle sandbox vs production
+        'sandbox' => env('LALAMOVE_SANDBOX', true),
+        // API credentials
+        'api_key' => env('LALAMOVE_API_KEY'),
+        'secret' => env('LALAMOVE_SECRET'),
+        // Webhook callback URL to receive delivery status updates
+        'callback_url' => env('LALAMOVE_CALLBACK_URL'),
+    ],
 ];

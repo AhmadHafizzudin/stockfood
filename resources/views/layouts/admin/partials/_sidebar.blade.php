@@ -1715,6 +1715,14 @@ $order_sch = Cache::rememberForever('order_scheduled_stats', function () {
                             </a>
                         </li>
 
+                        <li class="nav-item {{ Request::is('admin/business-settings/delivery-service') ? 'active' : '' }}">
+                            <a class="nav-link" href="{{ route('admin.business-settings.delivery-service') }}"
+                                title="{{ translate('messages.Delivery_Service') }}">
+                                <span class="tio-circle nav-indicator-icon"></span>
+                                <span class="text-truncate">{{ translate('messages.Delivery_Service') }}</span>
+                            </a>
+                        </li>
+
                         <li class="nav-item  {{ Request::is('admin/business-settings/fcm-*') ? 'active' : '' }}">
                             <a class="nav-link " href="{{ route('admin.business-settings.fcm-index') }}"
                                 title="{{ translate('messages.Firebase_Notification') }} ">

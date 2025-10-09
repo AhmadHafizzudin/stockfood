@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use App\Models\BusinessSetting;
+use Illuminate\Support\Facades\Log;
 
 use App\Library\Payer;
 use App\Traits\Payment;
@@ -51,7 +52,7 @@ class PaymentController extends Controller
         session()->put('payment_platform', $request['payment_platform']);
         session()->put('order_id', $request->order_id);
 
-        \Log::info('Payment Request:', [
+        Log::info('Payment Request:', [
             'order_id' => $request->order_id,
             'customer_id' => $request['customer_id'],
             'payment_method' => $request->payment_method ?? 'not_set'

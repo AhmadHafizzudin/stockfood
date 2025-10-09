@@ -2148,7 +2148,7 @@ class Helpers
                 if (!Storage::disk(self::getDisk())->exists($dir)) {
                     Storage::disk(self::getDisk())->makeDirectory($dir);
                 }
-                Storage::disk(self::getDisk())->putFileAs($dir, $image, $imageName);
+                Storage::disk(self::getDisk())->put($dir . '/' . $imageName, file_get_contents($image));
             } else {
                 $imageName = 'def.png';
             }
@@ -2220,8 +2220,18 @@ class Helpers
         ];
 
         try {
-            if ($data && $type == 's3' && Storage::disk('s3')->exists($path .'/'. $data)) {
-                return Storage::disk('s3')->url($path .'/'. $data);
+            // Normalize path and data to avoid empty-path issues
+            $path = is_string($path) ? trim($path) : '';
+            $data = is_string($data) ? trim($data) : $data;
+            if ($path !== '' && $data && $type == 's3' && Storage::disk('s3')->exists($path .'/'. $data)) {
+                try {
+                    return Storage::disk('s3')->temporaryUrl($path .'/'. $data, now()->addMinutes(5));
+                } catch (\BadMethodCallException $e) {
+                    // fallback for drivers that do not support temporaryUrl
+                    $awsUrl = config('filesystems.disks.s3.url');
+                    $awsBucket = config('filesystems.disks.s3.bucket');
+                    return rtrim($awsUrl, '/') . '/' . ltrim($awsBucket . '/' . $path . '/' . $data, '/');
+                }
 //                $awsUrl = config('filesystems.disks.s3.url');
 //                $awsBucket = config('filesystems.disks.s3.bucket');
 //                return rtrim($awsUrl, '/') . '/' . ltrim($awsBucket . '/' . $path . '/' . $data, '/');
@@ -2229,7 +2239,7 @@ class Helpers
         } catch (\Exception $e){
         }
 
-        if ($data && Storage::disk('public')->exists($path .'/'. $data)) {
+        if ($path !== '' && $data && Storage::disk('public')->exists($path .'/'. $data)) {
             return dynamicStorage('storage/app/public') . '/' . $path . '/' . $data;
         }
 
@@ -4042,7 +4052,8 @@ class Helpers
 
     public static function onerror_image_helper($data, $src, $error_src ,$path){
 
-        if(isset($data) && strlen($data) >1 && Storage::disk('public')->exists($path.$data)){
+        $path = is_string($path) ? trim($path) : '';
+        if(isset($data) && strlen($data) >1 && $path !== '' && Storage::disk('public')->exists($path.$data)){
             return $src;
         }
         return $error_src;
