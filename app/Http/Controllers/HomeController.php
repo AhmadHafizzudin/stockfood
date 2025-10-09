@@ -109,22 +109,22 @@ class HomeController extends Controller
 
             'about_us_redirect_link'=>   $settings['about_us_button_content'] ?? null ,
             'about_us_image_content'=>   $settings['about_us_image_content'] ??  null ,
-            'about_us_image_content_full_url'=>   Helpers::get_full_url('about_us_image',$settings['about_us_image_content'] ??  null,$settings['about_us_image_content_storage']) ,
+            'about_us_image_content_full_url'=>   Helpers::get_full_url('about_us_image',$settings['about_us_image_content'] ??  null,$settings['about_us_image_content_storage'] ?? 'public') ,
 
             'why_choose_us_title'=>   $settings['why_choose_us_title']?? null ,
             'why_choose_us_sub_title'=>   $settings['why_choose_us_sub_title'] ??  null ,
             'why_choose_us_image_1'=>   $settings['why_choose_us_image_1'] ??  null ,
-            'why_choose_us_image_1_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_1'] ??  null,$settings['why_choose_us_image_1_storage']) ,
+            'why_choose_us_image_1_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_1'] ??  null,$settings['why_choose_us_image_1_storage'] ?? 'public') ,
             'why_choose_us_title_1'=>   $settings['why_choose_us_title_1'] ??  null ,
             'why_choose_us_title_2'=>   $settings['why_choose_us_title_2'] ??  null ,
             'why_choose_us_image_2'=>   $settings['why_choose_us_image_2'] ??  null ,
-            'why_choose_us_image_2_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_2'] ??  null,$settings['why_choose_us_image_2_storage']) ,
+            'why_choose_us_image_2_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_2'] ??  null,$settings['why_choose_us_image_2_storage'] ?? 'public') ,
             'why_choose_us_title_3'=>   $settings['why_choose_us_title_3'] ??  null ,
             'why_choose_us_image_3'=>   $settings['why_choose_us_image_3'] ??  null ,
-            'why_choose_us_image_3_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_3'] ??  null,$settings['why_choose_us_image_3_storage']) ,
+            'why_choose_us_image_3_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_3'] ??  null,$settings['why_choose_us_image_3_storage'] ?? 'public') ,
             'why_choose_us_title_4'=>   $settings['why_choose_us_title_4'] ??  null ,
             'why_choose_us_image_4'=>   $settings['why_choose_us_image_4'] ??  null ,
-            'why_choose_us_image_4_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_4'] ??  null,$settings['why_choose_us_image_4_storage']) ,
+            'why_choose_us_image_4_full_url'=>   Helpers::get_full_url('why_choose_us_image',$settings['why_choose_us_image_4'] ??  null,$settings['why_choose_us_image_4_storage'] ?? 'public') ,
 
 
             'feature_title'=>   $settings['feature_title'] ??  null ,
@@ -170,7 +170,7 @@ class HomeController extends Controller
             'earn_money_delivety_man_req_button_name'=>   $settings['earn_money_delivety_man_req_button_name'] ??  null ,
             'earn_money_delivery_man_req_button_status'=>   $settings['earn_money_delivery_man_req_button_status'] ??  0 ,
             'earn_money_reg_image'=>   $settings['earn_money_reg_image'] ??  null ,
-            'earn_money_reg_image_full_url'=>   Helpers::get_full_url('earn_money',$settings['earn_money_reg_image'] ??  null,$settings['earn_money_reg_image_storage']) ,
+            'earn_money_reg_image_full_url'=>   Helpers::get_full_url('earn_money',$settings['earn_money_reg_image'] ??  null,$settings['earn_money_reg_image_storage'] ?? 'public') ,
 
             'earn_money_delivery_req_button_link'=>   $settings['earn_money_delivery_man_req_button_link']??  null ,
             'earn_money_restaurant_req_button_link'=>   $settings['earn_money_restaurant_req_button_link'] ??  null ,
