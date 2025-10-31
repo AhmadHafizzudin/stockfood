@@ -405,6 +405,13 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::post('place-grab', 'OrderController@place_order_grab');
             Route::get('track-grab', 'OrderController@track_order_grab');
             Route::put('cancel-grab', 'OrderController@cancel_order_grab');
+            
+            // Lalamove delivery endpoints
+            Route::post('lalamove/quotation', 'LalamoveController@getQuotation');
+            Route::post('lalamove/test-quotation', 'LalamoveController@testQuotation');
+            Route::post('lalamove/order', 'LalamoveController@createOrder');
+            Route::get('lalamove/order/{orderId}', 'LalamoveController@getOrder');
+            Route::put('lalamove/order/{orderId}/cancel', 'LalamoveController@cancelOrder');
         });
         Route::get('getPendingReviews', 'OrderController@getPendingReviews');
 
