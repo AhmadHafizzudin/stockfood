@@ -21,33 +21,13 @@ class LalamoveService
     }
 
     /**
-     * Generate HMAC signature for Lalamove API authentication
-     * Following the exact implementation from Postman pre-request script
+     * Generate HMAC signature for authentication (matching Postman collection format)
      */
-    private function generateSignature($method, $path, $body = '', $timestamp = null)
+    private function generateSignature($method, $path, $body)
     {
-        if (!$timestamp) {
-            $timestamp = (string) (round(microtime(true) * 1000)); // Current timestamp in milliseconds
-        }
-
-        // Trim body and ensure it's not null
-        $body = $body ?: "";
-        $body = trim($body);
-
-        // Construct message to sign exactly as in Postman script
-        $message = $timestamp . "\r\n" . strtoupper($method) . "\r\n" . $path . "\r\n\r\n" . $body;
-
-        // Generate HMAC SHA256 signature and convert to hex (lowercase)
+        $timestamp = (int)(microtime(true) * 1000); // Convert to milliseconds with precision
+        $message = "{$timestamp}\r\n{$method}\r\n{$path}\r\n\r\n{$body}";
         $signature = hash_hmac('sha256', $message, $this->secret);
-
-        Log::info('Lalamove Signature Debug', [
-            'timestamp' => $timestamp,
-            'method' => strtoupper($method),
-            'path' => $path,
-            'body' => $body,
-            'message' => $message,
-            'signature' => $signature
-        ]);
 
         return [
             'timestamp' => $timestamp,
@@ -60,7 +40,7 @@ class LalamoveService
      */
     private function makeRequest($method, $endpoint, $data = [])
     {
-        $path = "/{$this->version}" . $endpoint;
+        $path = $endpoint;
         $url = $this->baseUrl . $path;
         $body = !empty($data) ? json_encode($data) : '';
 
@@ -70,6 +50,7 @@ class LalamoveService
             'Authorization' => "hmac {$this->apiKey}:{$auth['timestamp']}:{$auth['signature']}",
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
+            'Market' => 'MY',  // Malaysia market code
         ];
 
         Log::info('Lalamove API Request', [
@@ -79,99 +60,130 @@ class LalamoveService
             'body' => $body
         ]);
 
-        $response = Http::withHeaders($headers)
-            ->timeout(config('lalamove.timeout.request', 60))
-            ->connectTimeout(config('lalamove.timeout.connect', 30));
-
-        switch (strtoupper($method)) {
-            case 'GET':
-                $response = $response->get($url);
-                break;
-            case 'POST':
-                $response = $response->withBody($body, 'application/json')->post($url);
-                break;
-            case 'PUT':
-                $response = $response->withBody($body, 'application/json')->put($url);
-                break;
-            case 'DELETE':
-                $response = $response->delete($url);
-                break;
-            default:
-                throw new \InvalidArgumentException("Unsupported HTTP method: {$method}");
-        }
-
-        Log::info('Lalamove API Response', [
-            'status' => $response->status(),
-            'body' => $response->body()
-        ]);
-
-        return $response;
-    }
-
-    /**
-     * Get quotation for delivery
-     */
-    public function getQuotation($quotationData)
-    {
         try {
-            $response = $this->makeRequest('POST', '/quotations', $quotationData);
+            $response = Http::withHeaders($headers)
+                ->timeout(config('lalamove.timeout.request', 60))
+                ->connectTimeout(config('lalamove.timeout.connect', 30));
 
-            if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'data' => $response->json()
-                ];
+            switch (strtoupper($method)) {
+                case 'GET':
+                    $response = $response->get($url);
+                    break;
+                case 'POST':
+                    $response = $response->withBody($body, 'application/json')->post($url);
+                    break;
+                case 'PUT':
+                    $response = $response->withBody($body, 'application/json')->put($url);
+                    break;
+                case 'DELETE':
+                    $response = $response->delete($url);
+                    break;
+                default:
+                    throw new \InvalidArgumentException("Unsupported HTTP method: {$method}");
             }
 
-            return [
-                'success' => false,
-                'error' => $response->json(),
-                'status' => $response->status()
-            ];
-        } catch (\Exception $e) {
-            Log::error('Lalamove Quotation Error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            Log::info('Lalamove API Response', [
+                'status' => $response->status(),
+                'headers' => $response->headers(),
+                'body' => $response->body(),
+                'successful' => $response->successful()
             ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            
+            // Log specific error details if request failed
+            if (!$response->successful()) {
+                Log::error('Lalamove API Request Failed', [
+                    'status' => $response->status(),
+                    'error_body' => $response->body(),
+                    'url' => $url,
+                    'method' => $method,
+                    'request_headers' => $headers,
+                    'request_data' => $data
+                ]);
+            }
+            
+            return $response;
+        } catch (\Exception $e) {
+            Log::error('Lalamove API Request Exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'url' => $url,
+                'method' => $method,
+                'headers' => $headers,
+                'data' => $data
+            ]);
+            throw $e;
         }
     }
 
     /**
-     * Create an order
+     * Get quotation from Lalamove API (matching Postman collection format)
      */
-    public function createOrder($orderData)
+    public function getQuotation($data)
     {
-        try {
-            $response = $this->makeRequest('POST', '/orders', $orderData);
+        $path = '/v3/quotations';
+        
+        // Structure the request body exactly like the Postman collection
+        $requestBody = [
+            'data' => [
+                'serviceType' => $data['serviceType'] ?? 'MOTORCYCLE',
+                'specialRequests' => $data['specialRequests'] ?? [],
+                'language' => $data['language'] ?? 'en_MY',
+                'stops' => $data['stops'] ?? [],
+                'isRouteOptimized' => $data['isRouteOptimized'] ?? false,
+                'item' => [
+                    'quantity' => $data['item']['quantity'] ?? '1',
+                    'weight' => $data['item']['weight'] ?? 'LESS_THAN_3_KG',
+                    'categories' => $data['item']['categories'] ?? ['FOOD_DELIVERY'],
+                    'handlingInstructions' => $data['item']['handlingInstructions'] ?? ['KEEP_UPRIGHT']
+                ]
+            ]
+        ];
+        
+        $body = json_encode($requestBody);
+        
+        return $this->makeRequest('POST', $path, $body);
+    }
 
-            if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'data' => $response->json()
-                ];
+    /**
+     * Create order with Lalamove (using quotation-based approach)
+     */
+    public function createOrder($quotationData, $quotationId = null)
+    {
+        // If no quotationId provided, get quotation first
+        if (!$quotationId) {
+            $quotationResponse = $this->getQuotation($quotationData);
+            
+            if (!$quotationResponse || !isset($quotationResponse['data']['quotationId'])) {
+                throw new \Exception('Failed to get quotation for order creation');
             }
-
-            return [
-                'success' => false,
-                'error' => $response->json(),
-                'status' => $response->status()
-            ];
-        } catch (\Exception $e) {
-            Log::error('Lalamove Order Creation Error', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
+            
+            $quotationId = $quotationResponse['data']['quotationId'];
         }
+        
+        $path = '/v3/orders';
+        
+        // Structure the order request body
+        $requestBody = [
+            'data' => [
+                'quotationId' => $quotationId,
+                'sender' => [
+                    'stopId' => $quotationResponse['data']['stops'][0]['stopId'] ?? null,
+                    'name' => config('app.name', 'StockFood'),
+                    'phone' => '+60123456789' // Should be from restaurant or config
+                ],
+                'recipients' => [
+                    [
+                        'stopId' => $quotationResponse['data']['stops'][1]['stopId'] ?? null,
+                        'name' => $quotationData['recipient']['name'] ?? 'Customer',
+                        'phone' => $quotationData['recipient']['phone'] ?? '+60123456789'
+                    ]
+                ]
+            ]
+        ];
+        
+        $body = json_encode($requestBody);
+        
+        return $this->makeRequest('POST', $path, $body);
     }
 
     /**
@@ -180,7 +192,7 @@ class LalamoveService
     public function getOrder($orderId)
     {
         try {
-            $response = $this->makeRequest('GET', "/orders/{$orderId}");
+            $response = $this->makeRequest('GET', "/{$this->version}/orders/{$orderId}");
 
             if ($response->successful()) {
                 return [
@@ -213,7 +225,7 @@ class LalamoveService
     public function cancelOrder($orderId)
     {
         try {
-            $response = $this->makeRequest('PUT', "/orders/{$orderId}/cancel");
+            $response = $this->makeRequest('PUT', "/{$this->version}/orders/{$orderId}/cancel");
 
             if ($response->successful()) {
                 return [

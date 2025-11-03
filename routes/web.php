@@ -41,7 +41,13 @@ Route::get('/userfood/{any}', function ($any) {
 
 
 Route::post('/subscribeToTopic', [FirebaseController::class, 'subscribeToTopic']);
+
+
+
 Route::get('/', 'HomeController@index')->name('home');
+
+// Include test routes
+require __DIR__ . '/test_routes.php';
 Route::view('subscription/payment/view' , 'Subscription_payment_view')->name('subscription_payment_view');
 Route::get('maintenance-mode', 'HomeController@maintenanceMode')->name('maintenance_mode');
 // ->middleware('maintenance')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);

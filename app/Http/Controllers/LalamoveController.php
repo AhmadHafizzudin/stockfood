@@ -83,51 +83,66 @@ class LalamoveController extends Controller
      */
     public function testQuotation(): JsonResponse
     {
-        // Using your exact sample data
-        $quotationData = [
-            'data' => [
-                'serviceType' => 'MOTORCYCLE',
-                'stops' => [
-                    [
-                        'coordinates' => [
-                            'lat' => '3.048593',
-                            'lng' => '101.671568'
+        try {
+            // Using correct data format (market sent as header)
+            $quotationData = [
+                'data' => [
+                    'serviceType' => 'MOTORCYCLE',
+                    'stops' => [
+                        [
+                            'coordinates' => [
+                                'lat' => '3.048593',
+                                'lng' => '101.671568'
+                            ],
+                            'address' => 'MATAHARI Bukit Jalil, No 2-1, Jalan Jalil 1, Lebuhraya Bukit Jalil, Sungai Besi, 57000 Kuala Lumpur, Malaysia'
                         ],
-                        'address' => 'MATAHARI Bukit Jalil, No 2-1, Jalan Jalil 1, Lebuhraya Bukit Jalil, Sungai Besi, 57000 Kuala Lumpur, Malaysia'
+                        [
+                            'coordinates' => [
+                                'lat' => '2.754873',
+                                'lng' => '101.703744'
+                            ],
+                            'address' => '64000 Sepang, Selangor, Malaysia'
+                        ]
                     ],
-                    [
-                        'coordinates' => [
-                            'lat' => '2.754873',
-                            'lng' => '101.703744'
-                        ],
-                        'address' => '64000 Sepang, Selangor, Malaysia'
-                    ]
-                ],
-                'language' => 'en_MY'
-            ]
-        ];
+                    'language' => 'en_MY'
+                ]
+            ];
 
-        $result = $this->lalamoveService->getQuotation($quotationData);
+            $result = $this->lalamoveService->getQuotation($quotationData);
 
-        if ($result['success']) {
-            $data = $result['data']['data'] ?? [];
-            
+            if ($result['success']) {
+                $data = $result['data']['data'] ?? $result['data'];
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Test quotation successful',
+                    'quotation_id' => $data['quotationId'] ?? null,
+                    'total' => $data['priceBreakdown']['total'] ?? null,
+                    'currency' => $data['priceBreakdown']['currency'] ?? null,
+                    'stops' => $data['stops'] ?? [],
+                    'full_response' => $result['data']
+                ]);
+            }
+
             return response()->json([
-                'success' => true,
-                'message' => 'Test quotation successful',
-                'quotation_id' => $data['quotationId'] ?? null,
-                'total' => $data['priceBreakdown']['total'] ?? null,
-                'currency' => $data['priceBreakdown']['currency'] ?? null,
-                'stops' => $data['stops'] ?? [],
-                'full_response' => $result['data']
-            ]);
+                'success' => false,
+                'message' => 'Test quotation failed',
+                'error' => $result['error'],
+                'debug_info' => [
+                    'api_key' => config('lalamove.api_key') ? 'Set' : 'Not Set',
+                    'secret' => config('lalamove.secret') ? 'Set' : 'Not Set',
+                    'base_url' => config('lalamove.base_url'),
+                    'version' => config('lalamove.version')
+                ]
+            ], $result['status'] ?? 500);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Test quotation exception',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
         }
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Test quotation failed',
-            'error' => $result['error']
-        ], $result['status'] ?? 500);
     }
 
     /**

@@ -408,7 +408,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             
             // Lalamove delivery endpoints
             Route::post('lalamove/quotation', 'LalamoveController@getQuotation');
-            Route::post('lalamove/test-quotation', 'LalamoveController@testQuotation');
+            Route::get('lalamove/test-quotation', 'LalamoveController@testQuotation');
             Route::post('lalamove/order', 'LalamoveController@createOrder');
             Route::get('lalamove/order/{orderId}', 'LalamoveController@getOrder');
             Route::put('lalamove/order/{orderId}/cancel', 'LalamoveController@cancelOrder');

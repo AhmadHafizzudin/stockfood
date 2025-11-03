@@ -125,6 +125,87 @@ if (! function_exists('order_success')) {
         $order->order_status = 'confirmed';
         $order->save();
         
+        // Create Lalamove delivery order for delivery orders
+        if (!in_array($order->order_type, ['dine_in', 'take_away']) && $order->restaurant) {
+            // Check if Lalamove is enabled in delivery service configuration
+            $lalamoveConfig = \App\Models\Setting::where('key_name', 'lalamove')
+                ->where('settings_type', 'delivery_config')
+                ->where('is_active', 1)
+                ->first();
+            
+            if (!$lalamoveConfig) {
+                \Illuminate\Support\Facades\Log::info('Lalamove delivery skipped - service not enabled', [
+                    'order_id' => $order->id
+                ]);
+                return;
+            }
+            
+            try {
+                $lalamoveService = new \App\Services\LalamoveService();
+                $deliveryAddress = json_decode($order->delivery_address, true);
+                
+                // Prepare quotation data for Lalamove (matching Postman collection format)
+                $quotationData = [
+                    'serviceType' => 'MOTORCYCLE',
+
+                    'language' => 'en_MY',
+                    'stops' => [
+                        [
+                            'coordinates' => [
+                                'lat' => (string)$order->restaurant->latitude,
+                                'lng' => (string)$order->restaurant->longitude
+                            ],
+                            'address' => $order->restaurant->address
+                        ],
+                        [
+                            'coordinates' => [
+                                'lat' => (string)($deliveryAddress['latitude'] ?? ''),
+                                'lng' => (string)($deliveryAddress['longitude'] ?? '')
+                            ],
+                            'address' => $deliveryAddress['address'] ?? ''
+                        ]
+                    ],
+                    'isRouteOptimized' => false,
+                    'item' => [
+                        'quantity' => '1',
+                        'weight' => 'LESS_THAN_3_KG',
+                        'categories' => ['FOOD_DELIVERY'],
+                        'handlingInstructions' => ['KEEP_UPRIGHT']
+                    ],
+                    'recipient' => [
+                        'name' => $deliveryAddress['contact_person_name'] ?? 'Customer',
+                        'phone' => $deliveryAddress['contact_person_number'] ?? '+60123456789'
+                    ]
+                ];
+                
+                // Create Lalamove order (this will get quotation first, then create order)
+                $lalamoveOrder = $lalamoveService->createOrder($quotationData);
+                
+                if ($lalamoveOrder && isset($lalamoveOrder['data']['orderId'])) {
+                    // Store Lalamove order ID in the order for tracking
+                    $order->lalamove_order_id = $lalamoveOrder['data']['orderId'];
+                    $order->save();
+                    
+                    \Illuminate\Support\Facades\Log::info('Lalamove order created successfully', [
+                        'order_id' => $order->id,
+                        'lalamove_order_id' => $lalamoveOrder['data']['orderId']
+                    ]);
+                } else {
+                    \Illuminate\Support\Facades\Log::warning('Lalamove order creation returned unexpected response', [
+                        'order_id' => $order->id,
+                        'response' => $lalamoveOrder
+                    ]);
+                }
+            } catch (\Exception $exception) {
+                // Log error but don't fail the order process
+                \Illuminate\Support\Facades\Log::error('Lalamove order creation failed', [
+                    'order_id' => $order->id,
+                    'error' => $exception->getMessage(),
+                    'trace' => $exception->getTraceAsString()
+                ]);
+            }
+        }
+        
         // Send order notifications
         Helpers::send_order_notification($order);
         
@@ -396,4 +477,4 @@ if (!function_exists('generateZenpaySignature')) {
         
         return hash_hmac('sha256', $queryString, $secretKey);
     }
-} 
+}
