@@ -15,6 +15,8 @@ return [
     'secret' => env('LALAMOVE_SECRET'),
     'base_url' => env('LALAMOVE_BASE_URL', 'https://rest.sandbox.lalamove.com'),
     'version' => env('LALAMOVE_VERSION', 'v3'),
+    'market' => env('LALAMOVE_MARKET', 'MY'),
+    'webhook_url' => env('LALAMOVE_WEBHOOK_URL'),
 
     /*
     |--------------------------------------------------------------------------
@@ -33,9 +35,9 @@ return [
     |--------------------------------------------------------------------------
     */
     'defaults' => [
-        'service_type' => 'MOTORCYCLE',
-        'language' => 'en_MY',
-        'currency' => 'MYR',
+        'service_type' => env('LALAMOVE_SERVICE_TYPE', 'MOTORCYCLE'),
+        'language' => env('LALAMOVE_LANGUAGE', 'en_MY'),
+        'currency' => env('LALAMOVE_CURRENCY', 'MYR'),
     ],
 
     /*

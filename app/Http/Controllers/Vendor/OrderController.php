@@ -352,6 +352,11 @@ class OrderController extends Controller
         $order[$request['order_status']] = now();
         $order->save();
 
+        // Trigger Lalamove when vendor marks order as Handover only
+        if ($request->order_status === 'handover') {
+            $this->dispatchViaLalamove($order);
+        }
+
 
         if(!Helpers::send_order_notification($order))
         {
@@ -360,6 +365,116 @@ class OrderController extends Controller
         OrderLogic::update_subscription_log($order);
         Toastr::success(translate('messages.order_status_updated'));
         return back();
+    }
+
+    /**
+     * Attempt to dispatch the order via Lalamove (MY) on vendor handover.
+     */
+    private function dispatchViaLalamove(\App\Models\Order $order): void
+    {
+        try {
+            if (!empty($order->lalamove_order_id)) {
+                \Log::info('Vendor Lalamove dispatch skipped: already has order ID', ['order_id' => $order->id, 'lalamove_order_id' => $order->lalamove_order_id]);
+                return;
+            }
+
+            // Ensure Lalamove is configured via .env (API key, secret, base URL)
+            $lalamoveConfigured = (bool) (config('lalamove.api_key') && config('lalamove.secret') && config('lalamove.base_url'));
+            if (!$lalamoveConfigured) {
+                \Log::info('Vendor Lalamove dispatch skipped: not configured in env', ['order_id' => $order->id]);
+                return;
+            }
+
+            $restaurant = $order->restaurant;
+            $delivery = $order->delivery_address ? json_decode($order->delivery_address, true) : null;
+            if (!$restaurant || !$delivery || !isset($delivery['latitude'], $delivery['longitude'])) {
+                \Log::warning('Vendor Lalamove dispatch aborted: missing location data', [
+                    'order_id' => $order->id,
+                    'has_restaurant' => (bool)$restaurant,
+                    'delivery' => $delivery,
+                ]);
+                return;
+            }
+
+            /** @var \App\Services\LalamoveService $lalamove */
+            $lalamove = app(\App\Services\LalamoveService::class);
+
+            // Ensure webhook is configured if provided
+            if ($url = config('lalamove.webhook_url')) {
+                $wh = $lalamove->updateWebhook($url);
+                if (!($wh['success'] ?? false)) {
+                    \Log::warning('Vendor Lalamove webhook update failed', ['order_id' => $order->id, 'error' => $wh['error'] ?? null]);
+                }
+            }
+
+            $pickup = $lalamove->formatStop(
+                $restaurant->latitude,
+                $restaurant->longitude,
+                $restaurant->address,
+                $restaurant->name ?? 'Restaurant',
+                $restaurant->phone ?? null
+            );
+
+            $dropoffAddress = $delivery['address'] ?? ($delivery['road'] ?? 'Customer Address');
+            $dropoff = $lalamove->formatStop(
+                $delivery['latitude'],
+                $delivery['longitude'],
+                $dropoffAddress,
+                optional($order->customer)->f_name ?? 'Customer',
+                optional($order->customer)->phone ?? '+60123456789'
+            );
+
+            $quotationPayload = $lalamove->formatQuotationData(
+                config('lalamove.defaults.service_type', 'MOTORCYCLE'),
+                [$pickup, $dropoff],
+                config('lalamove.defaults.language', 'en_MY')
+            );
+
+            $quote = $lalamove->getQuotation($quotationPayload);
+            if (!$quote['success']) {
+                \Log::error('Vendor Lalamove quotation failed', ['order_id' => $order->id, 'error' => $quote['error'] ?? null]);
+                return;
+            }
+
+            $qd = $quote['data']['data'] ?? $quote['data'];
+            $stops = $qd['stops'] ?? [];
+            $quotationId = $qd['quotationId'] ?? null;
+
+            $orderPayload = [
+                'data' => [
+                    'quotationId' => $quotationId,
+                    'sender' => [
+                        'stopId' => $stops[0]['stopId'] ?? null,
+                        'name' => $restaurant->name ?? 'Restaurant',
+                        'phone' => $restaurant->phone ?? '+60123456789',
+                    ],
+                    'recipients' => [
+                        [
+                            'stopId' => $stops[1]['stopId'] ?? null,
+                            'name' => optional($order->customer)->f_name ?? 'Customer',
+                            'phone' => optional($order->customer)->phone ?? '+60123456789',
+                            'remarks' => 'Order #' . $order->id,
+                        ]
+                    ],
+                    'isPODEnabled' => true,
+                    'partner' => $restaurant->name ?? 'Lalamove Partner',
+                ]
+            ];
+
+            $create = $lalamove->createOrder($orderPayload);
+            if ($create['success']) {
+                $lm = $create['data']['data']['orderId'] ?? ($create['data']['orderId'] ?? null);
+                if ($lm) {
+                    $order->lalamove_order_id = $lm;
+                    $order->save();
+                    \Log::info('Vendor Lalamove order created', ['order_id' => $order->id, 'lalamove_order_id' => $lm]);
+                }
+            } else {
+                \Log::error('Vendor Lalamove create order failed', ['order_id' => $order->id, 'error' => $create['error'] ?? null]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Vendor Lalamove dispatch exception', ['order_id' => $order->id, 'message' => $e->getMessage()]);
+        }
     }
 
     public function update_shipping(Request $request, $id)

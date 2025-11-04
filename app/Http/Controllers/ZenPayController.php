@@ -204,13 +204,21 @@ class ZenPayController extends Controller
     {
         $paymentId = session()->get('payment_id');
         $requestData = $request->all();
-        $statusCode = $requestData['status_code'];
+        $statusCode = $requestData['status_code'] ?? null;
 
-
-        if ($paymentId || $statusCode === '1C' || $statusCode === '00') {
+        // Dummy/test mode: treat bank return as success without strict checks
+        $isTestMode = env('APP_MODE') !== 'live';
+        if ($isTestMode && $paymentId) {
             $data = $this->payment::where(['id' => $paymentId])->first();
             if ($data) {
-                // if ($data && $data->is_paid) {
+                $this->payment::where(['id' => $paymentId])->update([
+                    'payment_method' => 'zenpay',
+                    'is_paid' => 1,
+                    'transaction_id' => $request->input('payref_id') ?? 'ZENPAY-DUMMY-RETURN',
+                ]);
+
+                // Reload with updated values
+                $data = $this->payment::where(['id' => $paymentId])->first();
 
                 if (isset($data) && function_exists($data->success_hook)) {
                     call_user_func($data->success_hook, $data);
@@ -218,7 +226,18 @@ class ZenPayController extends Controller
                 return $this->payment_response($data, 'success');
             }
         }
-        
+
+        // Live mode: require successful status codes or valid session
+        if ($paymentId || $statusCode === '1C' || $statusCode === '00') {
+            $data = $this->payment::where(['id' => $paymentId])->first();
+            if ($data) {
+                if (isset($data) && function_exists($data->success_hook)) {
+                    call_user_func($data->success_hook, $data);
+                }
+                return $this->payment_response($data, 'success');
+            }
+        }
+
         return redirect()->route('payment-fail')->with('error', 'Payment verification failed');
     }
 

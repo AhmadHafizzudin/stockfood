@@ -19,6 +19,5 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
     
-    # cors
-    Header set Access-Control-Allow-Origin "*"
+    # CORS headers are managed by Laravel's CORS middleware
 </IfModule>

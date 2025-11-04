@@ -11,13 +11,22 @@ class LalamoveService
     private $secret;
     private $baseUrl;
     private $version;
+    private $market;
 
     public function __construct()
     {
         $this->apiKey = config('lalamove.api_key');
         $this->secret = config('lalamove.secret');
-        $this->baseUrl = config('lalamove.base_url');
+        $this->baseUrl = rtrim((function ($url) {
+            // Normalize base URL: ensure protocol and no trailing slash
+            if (!$url) return '';
+            if (stripos($url, 'http://') !== 0 && stripos($url, 'https://') !== 0) {
+                $url = 'https://' . ltrim($url, '/');
+            }
+            return $url;
+        })(config('lalamove.base_url')), '/');
         $this->version = config('lalamove.version');
+        $this->market = config('lalamove.market', 'HK');
     }
 
     /**
@@ -42,7 +51,14 @@ class LalamoveService
     {
         $path = $endpoint;
         $url = $this->baseUrl . $path;
-        $body = !empty($data) ? json_encode($data) : '';
+        // Allow passing either an already-encoded JSON string or an array
+        if (is_string($data)) {
+            $body = $data;
+        } elseif (!empty($data)) {
+            $body = json_encode($data);
+        } else {
+            $body = '';
+        }
 
         $auth = $this->generateSignature($method, $path, $body);
 
@@ -50,7 +66,7 @@ class LalamoveService
             'Authorization' => "hmac {$this->apiKey}:{$auth['timestamp']}:{$auth['signature']}",
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
-            'Market' => 'MY',  // Malaysia market code
+            'Market' => $this->market,
         ];
 
         Log::info('Lalamove API Request', [
@@ -74,6 +90,9 @@ class LalamoveService
                     break;
                 case 'PUT':
                     $response = $response->withBody($body, 'application/json')->put($url);
+                    break;
+                case 'PATCH':
+                    $response = $response->withBody($body, 'application/json')->patch($url);
                     break;
                 case 'DELETE':
                     $response = $response->delete($url);
@@ -121,69 +140,67 @@ class LalamoveService
     public function getQuotation($data)
     {
         $path = '/v3/quotations';
-        
-        // Structure the request body exactly like the Postman collection
-        $requestBody = [
-            'data' => [
-                'serviceType' => $data['serviceType'] ?? 'MOTORCYCLE',
-                'specialRequests' => $data['specialRequests'] ?? [],
-                'language' => $data['language'] ?? 'en_MY',
-                'stops' => $data['stops'] ?? [],
-                'isRouteOptimized' => $data['isRouteOptimized'] ?? false,
-                'item' => [
-                    'quantity' => $data['item']['quantity'] ?? '1',
-                    'weight' => $data['item']['weight'] ?? 'LESS_THAN_3_KG',
-                    'categories' => $data['item']['categories'] ?? ['FOOD_DELIVERY'],
-                    'handlingInstructions' => $data['item']['handlingInstructions'] ?? ['KEEP_UPRIGHT']
-                ]
+
+        // Ensure body follows Postman structure and includes required defaults
+        $incoming = is_array($data) && isset($data['data']) ? $data['data'] : $data;
+        $merged = [
+            'serviceType' => $incoming['serviceType'] ?? 'MOTORCYCLE',
+            'language' => $incoming['language'] ?? 'en_MY',
+            'stops' => $incoming['stops'] ?? [],
+            'isRouteOptimized' => $incoming['isRouteOptimized'] ?? false,
+            'item' => [
+                'quantity' => ($incoming['item']['quantity'] ?? '1'),
+                'weight' => ($incoming['item']['weight'] ?? 'LESS_THAN_3_KG'),
+                'categories' => ($incoming['item']['categories'] ?? ['FOOD_DELIVERY']),
+                'handlingInstructions' => ($incoming['item']['handlingInstructions'] ?? ['KEEP_UPRIGHT'])
             ]
         ];
-        
-        $body = json_encode($requestBody);
-        
-        return $this->makeRequest('POST', $path, $body);
+        // Preserve any extra keys such as specialRequests
+        if (isset($incoming['specialRequests'])) {
+            $merged['specialRequests'] = $incoming['specialRequests'];
+        }
+        $requestBody = ['data' => $merged];
+
+        $response = $this->makeRequest('POST', $path, $requestBody);
+
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'data' => $response->json()
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => $response->json(),
+            'status' => $response->status()
+        ];
     }
 
     /**
      * Create order with Lalamove (using quotation-based approach)
      */
-    public function createOrder($quotationData, $quotationId = null)
+    public function createOrder($orderData)
     {
-        // If no quotationId provided, get quotation first
-        if (!$quotationId) {
-            $quotationResponse = $this->getQuotation($quotationData);
-            
-            if (!$quotationResponse || !isset($quotationResponse['data']['quotationId'])) {
-                throw new \Exception('Failed to get quotation for order creation');
-            }
-            
-            $quotationId = $quotationResponse['data']['quotationId'];
-        }
-        
         $path = '/v3/orders';
-        
-        // Structure the order request body
-        $requestBody = [
-            'data' => [
-                'quotationId' => $quotationId,
-                'sender' => [
-                    'stopId' => $quotationResponse['data']['stops'][0]['stopId'] ?? null,
-                    'name' => config('app.name', 'StockFood'),
-                    'phone' => '+60123456789' // Should be from restaurant or config
-                ],
-                'recipients' => [
-                    [
-                        'stopId' => $quotationResponse['data']['stops'][1]['stopId'] ?? null,
-                        'name' => $quotationData['recipient']['name'] ?? 'Customer',
-                        'phone' => $quotationData['recipient']['phone'] ?? '+60123456789'
-                    ]
-                ]
-            ]
+
+        // Expect fully formed Postman-style payload: { data: { quotationId, sender, recipients, ... } }
+        $payload = is_array($orderData) && isset($orderData['data']) ? $orderData : ['data' => $orderData];
+
+        $response = $this->makeRequest('POST', $path, $payload);
+
+        if ($response->successful()) {
+            return [
+                'success' => true,
+                'data' => $response->json()
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => $response->json(),
+            'status' => $response->status()
         ];
-        
-        $body = json_encode($requestBody);
-        
-        return $this->makeRequest('POST', $path, $body);
     }
 
     /**
@@ -225,7 +242,8 @@ class LalamoveService
     public function cancelOrder($orderId)
     {
         try {
-            $response = $this->makeRequest('PUT', "/{$this->version}/orders/{$orderId}/cancel");
+            // Align to Postman: DELETE /v3/orders/{orderId}
+            $response = $this->makeRequest('DELETE', "/{$this->version}/orders/{$orderId}");
 
             if ($response->successful()) {
                 return [
@@ -253,6 +271,65 @@ class LalamoveService
     }
 
     /**
+     * Get quotation details
+     */
+    public function getQuotationDetails($quotationId)
+    {
+        try {
+            $response = $this->makeRequest('GET', "/{$this->version}/quotations/{$quotationId}");
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'data' => $response->json()
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->json(),
+                'status' => $response->status()
+            ];
+        } catch (\Exception $e) {
+            Log::error('Lalamove Get Quotation Details Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Stub: Add priority fee
+     */
+    public function addPriorityFee($orderId, $payload = [])
+    {
+        // Housing function per request; to be implemented later
+        return [
+            'success' => false,
+            'message' => 'addPriorityFee not implemented yet'
+        ];
+    }
+
+    /**
+     * Stub: Edit order
+     */
+    public function editOrder($orderId, $payload = [])
+    {
+        // Housing function per request; to be implemented later
+        return [
+            'success' => false,
+            'message' => 'editOrder not implemented yet'
+        ];
+    }
+
+    // Note: removed previous stub of updateWebhook to avoid redeclaration.
+
+    /**
      * Helper method to format quotation data
      */
     public function formatQuotationData($serviceType, $stops, $language = 'en_MY')
@@ -260,8 +337,15 @@ class LalamoveService
         return [
             'data' => [
                 'serviceType' => $serviceType,
+                'language' => $language,
                 'stops' => $stops,
-                'language' => $language
+                'isRouteOptimized' => false,
+                'item' => [
+                    'quantity' => '1',
+                    'weight' => 'LESS_THAN_3_KG',
+                    'categories' => ['FOOD_DELIVERY'],
+                    'handlingInstructions' => ['KEEP_UPRIGHT']
+                ]
             ]
         ];
     }
@@ -271,22 +355,34 @@ class LalamoveService
      */
     public function formatStop($lat, $lng, $address, $contactName = null, $contactPhone = null)
     {
-        $stop = [
+        // Clamp and round coordinates to satisfy Lalamove pattern (max 15 decimals)
+        $latNum = max(-90, min(90, (float) $lat));
+        $lngNum = max(-180, min(180, (float) $lng));
+        // Use up to 6 decimals for stability and payload size
+        $latStr = rtrim(rtrim(number_format($latNum, 6, '.', ''), '0'), '.');
+        $lngStr = rtrim(rtrim(number_format($lngNum, 6, '.', ''), '0'), '.');
+
+        // Align with Lalamove v3: stops should only include coordinates and address
+        return [
             'coordinates' => [
-                'lat' => (string) $lat,
-                'lng' => (string) $lng
+                'lat' => $latStr,
+                'lng' => $lngStr
             ],
             'address' => $address
         ];
+    }
 
-        if ($contactName) {
-            $stop['contactName'] = $contactName;
+    /**
+     * Update webhook URL for Lalamove callbacks
+     */
+    public function updateWebhook(string $url)
+    {
+        $path = '/v3/webhook';
+        $payload = ['data' => ['url' => $url]];
+        $response = $this->makeRequest('PATCH', $path, $payload);
+        if ($response->successful()) {
+            return ['success' => true, 'data' => $response->json()];
         }
-
-        if ($contactPhone) {
-            $stop['contactPhone'] = $contactPhone;
-        }
-
-        return $stop;
+        return ['success' => false, 'error' => $response->json(), 'status' => $response->status()];
     }
 }

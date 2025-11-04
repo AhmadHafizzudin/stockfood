@@ -298,42 +298,37 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
 
 
 Route::get('/image-proxy', function () {
-            $url = request('url');
+    $url = request('url');
 
-            // Validate URL
-            if (empty($url) || $url === 'null' || !filter_var($url, FILTER_VALIDATE_URL)) {
-                return response()->json(['error' => 'Invalid or missing url parameter'], 400)
-                    ->header('Access-Control-Allow-Origin', '*');
-            }
+    // Small 1x1 transparent PNG placeholder (base64)
+    $transparentPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2cZ9cAAAAASUVORK5CYII=');
 
-            try {
-                // Fetch the image
-                $response = Http::withHeaders([
-                    'User-Agent' => 'Laravel-Image-Proxy'
-                ])->timeout(10)->get($url);
+    // If URL is missing/invalid, return a safe placeholder image
+    if (empty($url) || $url === 'null' || !filter_var($url, FILTER_VALIDATE_URL)) {
+        return response($transparentPng, 200)->header('Content-Type', 'image/png');
+    }
 
-                // Ensure the response is successful
-                if (!$response->successful()) {
-                    return response()->json([
-                        'error' => 'Failed to fetch image',
-                        'status' => $response->status()
-                    ], $response->status())
-                        ->header('Access-Control-Allow-Origin', '*');
-                }
+    try {
+        // Fetch the image
+        $response = Http::withHeaders([
+            'User-Agent' => 'Laravel-Image-Proxy'
+        ])->timeout(10)->get($url);
 
-                // Return the image content with correct Content-Type
-                return response($response->body(), 200)
-                    ->header('Content-Type', $response->header('Content-Type', 'image/jpeg'))
-                    ->header('Access-Control-Allow-Origin', '*');
+        // If upstream fails or body is empty, return placeholder
+        if (!$response->successful() || empty($response->body())) {
+            return response($transparentPng, 200)->header('Content-Type', 'image/png');
+        }
 
-            } catch (\Exception $e) {
-                return response()->json([
-                    'error' => 'Failed to fetch image',
-                    'message' => $e->getMessage()
-                ], 500)
-                    ->header('Access-Control-Allow-Origin', '*');
-            }
-        });
+        // Forward the image bytes and content type
+        $contentType = $response->header('Content-Type') ?: 'application/octet-stream';
+        return response($response->body(), 200)
+            ->header('Content-Type', $contentType)
+            ->header('Cache-Control', 'public, max-age=86400');
+    } catch (\Exception $e) {
+        // On exception, return placeholder to avoid UI errors
+        return response($transparentPng, 200)->header('Content-Type', 'image/png');
+    }
+});
 
         
 

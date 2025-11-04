@@ -408,10 +408,17 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             
             // Lalamove delivery endpoints
             Route::post('lalamove/quotation', 'LalamoveController@getQuotation');
+            Route::get('lalamove/quotation/{quotationId}', 'LalamoveController@getQuotationDetails');
             Route::get('lalamove/test-quotation', 'LalamoveController@testQuotation');
             Route::post('lalamove/order', 'LalamoveController@createOrder');
+            Route::post('lalamove/order/{orderId}/priority-fee', 'LalamoveController@addPriorityFee');
+            Route::patch('lalamove/order/{orderId}', 'LalamoveController@editOrder');
             Route::get('lalamove/order/{orderId}', 'LalamoveController@getOrder');
             Route::put('lalamove/order/{orderId}/cancel', 'LalamoveController@cancelOrder');
+            Route::delete('lalamove/order/{orderId}', 'LalamoveController@cancelOrder');
+            Route::patch('lalamove/webhook', 'LalamoveController@updateWebhook');
+            // Webhook callback endpoint to receive Lalamove status updates
+            Route::post('lalamove/callback', 'LalamoveController@webhookCallback');
         });
         Route::get('getPendingReviews', 'OrderController@getPendingReviews');
 
