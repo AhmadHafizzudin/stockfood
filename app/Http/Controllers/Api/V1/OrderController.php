@@ -1836,6 +1836,136 @@ class OrderController extends Controller
 
             DB::commit();
 
+            // Auto-create Lalamove delivery order immediately after order creation (for delivery orders)
+            try {
+                // Proceed only for delivery orders without an existing Lalamove order
+                if ($order->order_type === 'delivery' && empty($order->lalamove_order_id)) {
+                    // Check that Lalamove is enabled and configured
+                    $lalamoveConfigured = (bool) (config('lalamove.api_key') && config('lalamove.secret') && config('lalamove.base_url'));
+                    $lalamoveSettingEnabled = (bool) \App\Models\Setting::where('key_name', 'lalamove')
+                        ->where('settings_type', 'delivery_config')
+                        ->where('is_active', 1)
+                        ->exists();
+
+                    if ($lalamoveConfigured && $lalamoveSettingEnabled) {
+                        /** @var \App\Services\LalamoveService $lalamove */
+                        $lalamove = app(\App\Services\LalamoveService::class);
+
+                        // Ensure webhook is configured if provided
+                        if ($url = config('lalamove.webhook_url')) {
+                            $wh = $lalamove->updateWebhook($url);
+                            if (!($wh['success'] ?? false)) {
+                                \Log::warning('Lalamove webhook update failed (place_order)', ['order_id' => $order->id, 'error' => $wh['error'] ?? null]);
+                            }
+                        }
+
+                        $restaurant = $order->restaurant;
+                        $delivery = $order->delivery_address ? json_decode($order->delivery_address, true) : null;
+
+                        // Validate coordinates availability
+                        if ($restaurant && $delivery && isset($restaurant->latitude, $restaurant->longitude, $delivery['latitude'], $delivery['longitude'])) {
+                            // Build pickup and dropoff stops
+                            $pickup = $lalamove->formatStop(
+                                $restaurant->latitude,
+                                $restaurant->longitude,
+                                $restaurant->address,
+                                $restaurant->name ?? 'Restaurant',
+                                $restaurant->phone ?? null
+                            );
+
+                            // Build dropoff from actual order delivery address and contact
+                            $dropoffAddress = $delivery['address'] ?? ($delivery['road'] ?? 'Customer Address');
+                            $recipientName = $delivery['contact_person_name'] ?? ($order->customer?->f_name ?? null);
+                            $recipientPhone = $delivery['contact_person_number'] ?? ($order->customer?->phone ?? null);
+                            // Normalize phone to include leading '+' if missing
+                            if ($recipientPhone && substr($recipientPhone, 0, 1) !== '+') {
+                                $recipientPhone = '+' . $recipientPhone;
+                            }
+
+                            $dropoff = $lalamove->formatStop(
+                                $delivery['latitude'],
+                                $delivery['longitude'],
+                                $dropoffAddress,
+                                $recipientName,
+                                $recipientPhone
+                            );
+
+                            // Request quotation
+                            $quotationPayload = $lalamove->formatQuotationData(
+                                config('lalamove.defaults.service_type', 'MOTORCYCLE'),
+                                [$pickup, $dropoff],
+                                config('lalamove.defaults.language', 'en_MY')
+                            );
+                            $quote = $lalamove->getQuotation($quotationPayload);
+                            if (!($quote['success'] ?? false)) {
+                                \Log::error('Lalamove quotation failed on place_order', ['order_id' => $order->id, 'error' => $quote['error'] ?? null]);
+                            } else {
+                                $qd = $quote['data']['data'] ?? $quote['data'];
+                                $stops = $qd['stops'] ?? [];
+                                $quotationId = $qd['quotationId'] ?? null;
+
+                                // Ensure we have real recipient contact; skip dispatch if missing
+                                if (empty($recipientName) || empty($recipientPhone)) {
+                                    \Log::warning('Lalamove create order skipped: missing recipient contact', [
+                                        'order_id' => $order->id,
+                                        'recipient_name' => $recipientName,
+                                        'recipient_phone' => $recipientPhone,
+                                    ]);
+                                    goto LALAMOVE_DISPATCH_EXIT;
+                                }
+
+                                // Create Lalamove order from quotation
+                                $orderPayload = [
+                                    'data' => [
+                                        'quotationId' => $quotationId,
+                                        'sender' => [
+                                            'stopId' => $stops[0]['stopId'] ?? null,
+                                            'name' => $restaurant->name ?? 'Restaurant',
+                                            'phone' => $restaurant->phone ?? '+60123456789',
+                                        ],
+                                        'recipients' => [
+                                            [
+                                                'stopId' => $stops[1]['stopId'] ?? null,
+                                                'name' => $recipientName,
+                                                'phone' => $recipientPhone,
+                                                'remarks' => 'Order #' . $order->id,
+                                            ]
+                                        ],
+                                        'isPODEnabled' => true,
+                                        'partner' => $restaurant->name ?? 'Lalamove Partner',
+                                    ]
+                                ];
+
+                                $create = $lalamove->createOrder($orderPayload);
+                                if (($create['success'] ?? false) === true) {
+                                    $lm = $create['data']['data']['orderId'] ?? ($create['data']['orderId'] ?? null);
+                                    if ($lm) {
+                                        $order->lalamove_order_id = $lm;
+                                        $order->save();
+                                        \Log::info('Lalamove order created on place_order', ['order_id' => $order->id, 'lalamove_order_id' => $lm]);
+                                    } else {
+                                        \Log::warning('Lalamove create order missing orderId on place_order', ['order_id' => $order->id, 'response' => $create]);
+                                    }
+                                } else {
+                                    \Log::error('Lalamove create order failed on place_order', ['order_id' => $order->id, 'error' => $create['error'] ?? null, 'status' => $create['status'] ?? null]);
+                                }
+                            }
+                            LALAMOVE_DISPATCH_EXIT:
+                        } else {
+                            \Log::warning('Lalamove dispatch aborted on place_order: missing location data', [
+                                'order_id' => $order->id,
+                                'has_restaurant' => (bool) $restaurant,
+                                'delivery' => $delivery,
+                            ]);
+                        }
+                    } else {
+                        \Log::info('Lalamove dispatch skipped on place_order: not configured or disabled', ['order_id' => $order->id]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Lalamove dispatch exception on place_order', ['order_id' => $order->id, 'message' => $e->getMessage()]);
+            }
+
             // Standard Payment Flow
             $payment_url = null;
             if ($request->payment_method == 'digital_payment') {

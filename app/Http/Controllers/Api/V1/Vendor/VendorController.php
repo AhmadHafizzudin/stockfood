@@ -337,9 +337,13 @@ class VendorController extends Controller
 
         ]);
 
-        $validator->sometimes('otp', 'required', function ($request) {
-            return (Config::get('order_delivery_verification') == 1 && $request['status'] == 'delivered');
-        });
+        /*
+         * OTP requirement temporarily disabled for delivered status.
+         * Original behavior: conditionally require 'otp' when order_delivery_verification is enabled and status is delivered.
+         */
+        // $validator->sometimes('otp', 'required', function ($request) {
+        //     return (Config::get('order_delivery_verification') == 1 && $request['status'] == 'delivered');
+        // });
 
         if ($validator->fails()) {
             return response()->json(['errors' => Helpers::error_processor($validator)], 403);
@@ -415,14 +419,18 @@ class VendorController extends Controller
                 ]
             ], 403);
         }
-        if(Config::get('order_delivery_verification') == 1 && $request['status'] == 'delivered' && $order->otp != $request['otp'])
-        {
-            return response()->json([
-                'errors' => [
-                    ['code' => 'otp', 'message' => 'Not matched']
-                ]
-            ], 403);
-        }
+        /*
+         * OTP check temporarily disabled.
+         * Original behavior: block delivered if OTP mismatch when verification enabled.
+         */
+        // if(Config::get('order_delivery_verification') == 1 && $request['status'] == 'delivered' && $order->otp != $request['otp'])
+        // {
+        //     return response()->json([
+        //         'errors' => [
+        //             ['code' => 'otp', 'message' => 'Not matched']
+        //         ]
+        //     ], 403);
+        // }
 
         if ($request->status == 'delivered' && ($order->transaction == null || isset($order->subscription_id))) {
 

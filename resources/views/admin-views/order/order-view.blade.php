@@ -1433,6 +1433,8 @@ $max_processing_time = $order->restaurant?explode('-', $order->restaurant['deliv
                             </div>
                         </div>
 
+                        {{-- Removed Order Verification Code card as requested --}}
+
                         @if ($order->order_type != 'dine_in')
                         <!-- order proof -->
                         <div  class="col-12 mt-2">

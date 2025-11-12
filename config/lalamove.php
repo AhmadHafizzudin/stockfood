@@ -15,8 +15,10 @@ return [
     'secret' => env('LALAMOVE_SECRET'),
     'base_url' => env('LALAMOVE_BASE_URL', 'https://rest.sandbox.lalamove.com'),
     'version' => env('LALAMOVE_VERSION', 'v3'),
-    'market' => env('LALAMOVE_MARKET', 'MY'),
-    'webhook_url' => env('LALAMOVE_WEBHOOK_URL'),
+    // Use Kuala Lumpur market by default; override via env if needed
+    'market' => env('LALAMOVE_MARKET', 'MY_KUL'),
+    // Default webhook points to provided webhook.site URL; override via env
+    'webhook_url' => env('LALAMOVE_WEBHOOK_URL', 'https://webhook.site/e3f46283-3586-464b-9bd8-41e31744b55f'),
 
     /*
     |--------------------------------------------------------------------------

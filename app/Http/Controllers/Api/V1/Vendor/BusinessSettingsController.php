@@ -331,6 +331,8 @@ class BusinessSettingsController extends Controller
         return response()->json(['message'=>translate('messages.Schedule removed successfully')], 200);
     }
 
+    
+
     function suggestion_list(Request $request)
     {
         $cuisineNames = Cuisine::pluck('name')->toArray();

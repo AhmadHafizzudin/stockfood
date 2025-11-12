@@ -178,24 +178,101 @@ if (! function_exists('order_success')) {
                     ]
                 ];
                 
-                // Create Lalamove order (this will get quotation first, then create order)
-                $lalamoveOrder = $lalamoveService->createOrder($quotationData);
-                
-                if ($lalamoveOrder && isset($lalamoveOrder['data']['orderId'])) {
-                    // Store Lalamove order ID in the order for tracking
-                    $order->lalamove_order_id = $lalamoveOrder['data']['orderId'];
-                    $order->save();
-                    
-                    \Illuminate\Support\Facades\Log::info('Lalamove order created successfully', [
+                // Flow: get quotation → get quotation details (stopIds) → create order
+                $quotationResp = $lalamoveService->getQuotation(['data' => $quotationData]);
+                if (!($quotationResp['success'] ?? false)) {
+                    \Illuminate\Support\Facades\Log::error('Lalamove quotation failed in helpers', [
                         'order_id' => $order->id,
-                        'lalamove_order_id' => $lalamoveOrder['data']['orderId']
+                        'error' => $quotationResp['error'] ?? null,
+                        'status' => $quotationResp['status'] ?? null,
                     ]);
-                } else {
-                    \Illuminate\Support\Facades\Log::warning('Lalamove order creation returned unexpected response', [
+                    // Do not stop user flow if Lalamove fails
+                    goto LALAMOVE_EXIT;
+                }
+
+                $qData = $quotationResp['data']['data'] ?? $quotationResp['data'];
+                $quotationId = $qData['quotationId'] ?? null;
+                if (!$quotationId) {
+                    \Illuminate\Support\Facades\Log::error('Lalamove quotation response missing quotationId', [
                         'order_id' => $order->id,
-                        'response' => $lalamoveOrder
+                        'response' => $quotationResp['data'] ?? null,
+                    ]);
+                    goto LALAMOVE_EXIT;
+                }
+
+                $detailsResp = $lalamoveService->getQuotationDetails($quotationId);
+                if (!($detailsResp['success'] ?? false)) {
+                    \Illuminate\Support\Facades\Log::error('Lalamove quotation details failed in helpers', [
+                        'order_id' => $order->id,
+                        'quotation_id' => $quotationId,
+                        'error' => $detailsResp['error'] ?? null,
+                        'status' => $detailsResp['status'] ?? null,
+                    ]);
+                    goto LALAMOVE_EXIT;
+                }
+
+                $dData = $detailsResp['data']['data'] ?? $detailsResp['data'];
+                $stops = $dData['stops'] ?? [];
+                if (count($stops) < 2) {
+                    \Illuminate\Support\Facades\Log::error('Lalamove quotation details missing stops', [
+                        'order_id' => $order->id,
+                        'quotation_id' => $quotationId,
+                        'details' => $dData,
+                    ]);
+                    goto LALAMOVE_EXIT;
+                }
+
+                $senderName = $order->restaurant->name ?? 'Restaurant';
+                $senderPhone = $order->restaurant->phone ?? '+60123456789';
+                $recipientName = $deliveryAddress['contact_person_name'] ?? ($order->customer?->f_name ?? 'Customer');
+                $recipientPhone = $deliveryAddress['contact_person_number'] ?? ($order->customer?->phone ?? '+60123456789');
+
+                $orderPayload = [
+                    'data' => [
+                        'quotationId' => $quotationId,
+                        'sender' => [
+                            'stopId' => $stops[0]['stopId'] ?? null,
+                            'name' => $senderName,
+                            'phone' => $senderPhone,
+                        ],
+                        'recipients' => [
+                            [
+                                'stopId' => $stops[1]['stopId'] ?? null,
+                                'name' => $recipientName,
+                                'phone' => $recipientPhone,
+                                'remarks' => 'Order #' . $order->id,
+                            ]
+                        ],
+                        'isPODEnabled' => true,
+                        'partner' => $order->restaurant->name ?? 'Lalamove Partner',
+                    ]
+                ];
+
+                $createResp = $lalamoveService->createOrder($orderPayload);
+                if (($createResp['success'] ?? false)) {
+                    $lmOrderId = $createResp['data']['data']['orderId'] ?? ($createResp['data']['orderId'] ?? null);
+                    if ($lmOrderId) {
+                        $order->lalamove_order_id = $lmOrderId;
+                        $order->save();
+                        \Illuminate\Support\Facades\Log::info('Lalamove order created successfully', [
+                            'order_id' => $order->id,
+                            'lalamove_order_id' => $lmOrderId,
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::warning('Lalamove create order succeeded but missing orderId', [
+                            'order_id' => $order->id,
+                            'response' => $createResp,
+                        ]);
+                    }
+                } else {
+                    \Illuminate\Support\Facades\Log::error('Lalamove create order failed', [
+                        'order_id' => $order->id,
+                        'error' => $createResp['error'] ?? null,
+                        'status' => $createResp['status'] ?? null,
                     ]);
                 }
+
+                LALAMOVE_EXIT:
             } catch (\Exception $exception) {
                 // Log error but don't fail the order process
                 \Illuminate\Support\Facades\Log::error('Lalamove order creation failed', [

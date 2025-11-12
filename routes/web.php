@@ -300,33 +300,52 @@ Route::group(['prefix' => 'deliveryman', 'as' => 'deliveryman.'], function () {
 Route::get('/image-proxy', function () {
     $url = request('url');
 
-    // Small 1x1 transparent PNG placeholder (base64)
+    // Transparent 1x1 PNG placeholder (base64)
     $transparentPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2cZ9cAAAAASUVORK5CYII=');
 
-    // If URL is missing/invalid, return a safe placeholder image
+    // Resolve relative URLs (e.g., /storage/...) against APP_URL
+    if (!empty($url) && !preg_match('/^https?:\/\//i', $url)) {
+        $base = rtrim(config('app.url'), '/');
+        $path = '/' . ltrim($url, '/');
+        $url = $base . $path;
+    }
+
+    // Validate final URL
     if (empty($url) || $url === 'null' || !filter_var($url, FILTER_VALIDATE_URL)) {
-        return response($transparentPng, 200)->header('Content-Type', 'image/png');
+        return response($transparentPng, 200)
+            ->header('Content-Type', 'image/png')
+            ->header('Access-Control-Allow-Origin', request()->header('Origin', '*'))
+            ->header('Vary', 'Origin');
     }
 
     try {
-        // Fetch the image
         $response = Http::withHeaders([
-            'User-Agent' => 'Laravel-Image-Proxy'
-        ])->timeout(10)->get($url);
+            'User-Agent' => 'Laravel-Image-Proxy',
+            'Accept' => 'image/*,*/*'
+        ])->timeout(15)->get($url);
 
-        // If upstream fails or body is empty, return placeholder
         if (!$response->successful() || empty($response->body())) {
-            return response($transparentPng, 200)->header('Content-Type', 'image/png');
+            return response($transparentPng, 200)
+                ->header('Content-Type', 'image/png')
+                ->header('Access-Control-Allow-Origin', request()->header('Origin', '*'))
+                ->header('Cache-Control', 'public, max-age=60')
+                ->header('Vary', 'Origin');
         }
 
-        // Forward the image bytes and content type
-        $contentType = $response->header('Content-Type') ?: 'application/octet-stream';
+        $contentType = $response->header('Content-Type') ?: 'image/*';
         return response($response->body(), 200)
             ->header('Content-Type', $contentType)
-            ->header('Cache-Control', 'public, max-age=86400');
+            ->header('Access-Control-Allow-Origin', request()->header('Origin', '*'))
+            ->header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept')
+            ->header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+            ->header('Cache-Control', 'public, max-age=86400')
+            ->header('Vary', 'Origin');
     } catch (\Exception $e) {
-        // On exception, return placeholder to avoid UI errors
-        return response($transparentPng, 200)->header('Content-Type', 'image/png');
+        return response($transparentPng, 200)
+            ->header('Content-Type', 'image/png')
+            ->header('Access-Control-Allow-Origin', request()->header('Origin', '*'))
+            ->header('Cache-Control', 'public, max-age=60')
+            ->header('Vary', 'Origin');
     }
 });
 

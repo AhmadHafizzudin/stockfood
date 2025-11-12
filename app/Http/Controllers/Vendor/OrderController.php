@@ -252,23 +252,28 @@ class OrderController extends Controller
         }
 
         if ($request->order_status == 'delivered') {
-            $order_delivery_verification = (boolean)\App\Models\BusinessSetting::where(['key' => 'order_delivery_verification'])->first()?->value;
-            if($order_delivery_verification)
-            {
-                if($request->otp)
-                {
-                    if($request->otp != $order->otp)
-                    {
-                        Toastr::warning(translate('messages.order_varification_code_not_matched'));
-                        return back();
-                    }
-                }
-                else
-                {
-                    Toastr::warning(translate('messages.order_varification_code_is_required'));
-                    return back();
-                }
-            }
+            /*
+             * OTP verification temporarily disabled.
+             * Original behavior: when BusinessSetting 'order_delivery_verification' enabled,
+             * require matching OTP to mark delivered.
+             */
+            // $order_delivery_verification = (boolean)\App\Models\BusinessSetting::where(['key' => 'order_delivery_verification'])->first()?->value;
+            // if($order_delivery_verification)
+            // {
+            //     if($request->otp)
+            //     {
+            //         if($request->otp != $order->otp)
+            //         {
+            //             Toastr::warning(translate('messages.order_varification_code_not_matched'));
+            //             return back();
+            //         }
+            //     }
+            //     else
+            //     {
+            //         Toastr::warning(translate('messages.order_varification_code_is_required'));
+            //         return back();
+            //     }
+            // }
             if(isset($order->subscription_id) && count($order->subscription_logs) == 0 ){
                 Toastr::warning(translate('messages.You_Can_Not_Delivered_This_Subscription_order_Before_Schedule'));
                 return back();

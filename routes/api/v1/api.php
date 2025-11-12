@@ -199,6 +199,7 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
         // Business setup
         Route::put('update-basic-info', 'BusinessSettingsController@update_restaurant_basic_info');
         Route::put('update-business-setup', 'BusinessSettingsController@update_restaurant_setup');
+ 
         Route::get('get-characteristic-suggestion', 'BusinessSettingsController@suggestion_list');
 
         // Reataurant schedule
@@ -418,7 +419,10 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
             Route::delete('lalamove/order/{orderId}', 'LalamoveController@cancelOrder');
             Route::patch('lalamove/webhook', 'LalamoveController@updateWebhook');
             // Webhook callback endpoint to receive Lalamove status updates
-            Route::post('lalamove/callback', 'LalamoveController@webhookCallback');
+            Route::post('lalamove/callback', 'LalamoveController@webhookCallback')
+                ->withoutMiddleware(['apiGuestCheck']);
+            // Mock endpoint to simulate rider/job status changes
+            Route::post('lalamove/mock-status', 'LalamoveController@mockStatus');
         });
         Route::get('getPendingReviews', 'OrderController@getPendingReviews');
 
@@ -470,6 +474,8 @@ Route::group(['namespace' => 'Api\V1', 'middleware'=>['localization','react']], 
     Route::get('get-vehicles', 'ConfigController@get_vehicles');
     Route::get('get-PaymentMethods', 'ConfigController@getPaymentMethods');
     Route::get('offline_payment_method_list', 'ConfigController@offline_payment_method_list');
+    // Generic webhook receiver available at /api/v1/webhook/receive
+    Route::post('webhook/receive', [\App\Http\Controllers\WebhookController::class, 'handle']);
 });
 
 

@@ -2243,9 +2243,9 @@ class Helpers
             return dynamicStorage('storage/app/public') . '/' . $path . '/' . $data;
         }
 
-        if (request()->is('api/*')) {
-            return null;
-        }
+        // For API responses, return a valid placeholder URL instead of null
+        // so clients (Flutter/web) can render a visual fallback rather than blank images.
+        // This keeps behavior consistent across web and API contexts.
 
         if(isset($placeholder) && array_key_exists($placeholder, $place_holders)){
             return $place_holders[$placeholder];

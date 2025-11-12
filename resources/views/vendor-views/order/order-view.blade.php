@@ -654,7 +654,8 @@ if($order->delivery_address){
 
                     <div class="card-body">
                         <!-- Unfold -->
-                        @php($order_delivery_verification = (bool) \App\Models\BusinessSetting::where(['key' => 'order_delivery_verification'])->first()->value)
+                        {{-- OTP prompt disabled: original setting below commented out --}}
+                        {{-- @php($order_delivery_verification = (bool) \App\Models\BusinessSetting::where(['key' => 'order_delivery_verification'])->first()->value) --}}
                         <div class="order-btn-wraper">
                             @if ($order['order_status'] == 'pending')
                                 <a class="btn w-100 mb-3 btn-sm btn--primary order-status-change-alert"
@@ -680,7 +681,7 @@ if($order->delivery_address){
                             ($restaurant->restaurant_model == 'subscription'  && $restaurant?->restaurant_sub?->self_delivery == 1))
                             ))
                                 <a class="btn btn-sm btn--primary w-100 mb-3 order-status-change-alert"
-                                    data-url="{{ route('vendor.order.status', ['id' => $order['id'], 'order_status' => 'delivered']) }}" data-message="{{ translate('Change status to delivered (payment status will be paid if not) ?') }}" data-verification="{{ $order_delivery_verification ? 'true' : 'false' }}"
+                                    data-url="{{ route('vendor.order.status', ['id' => $order['id'], 'order_status' => 'delivered']) }}" data-message="{{ translate('Change status to delivered (payment status will be paid if not) ?') }}" data-verification="false"
                                     href="javascript:">{{  $order?->order_type == 'dine_in' ? translate('messages.Make_Completed') : translate('messages.make_delivered') }}</a>
                             @endif
                         </div>

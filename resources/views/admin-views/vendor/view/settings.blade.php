@@ -608,6 +608,8 @@
                             </div>
                         @endif
 
+                        
+
                     @if($restaurant->restaurant_config?->dine_in)
                         <div class="col-lg-4 col-sm-6">
                             <div class="form-group mb-0">

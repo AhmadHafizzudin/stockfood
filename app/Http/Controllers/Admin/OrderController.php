@@ -668,10 +668,15 @@ class OrderController extends Controller
             return back();
         }
 
-        if ($request->order_status == 'delivered' && $order['transaction_reference'] == null && !in_array($order['payment_method'],['cash_on_delivery','wallet'])) {
-            Toastr::warning(translate('messages.add_your_paymen_ref_first'));
-            return back();
-        }
+        /*
+         * Reference code gating disabled per request.
+         * Original behavior: prevent marking as delivered if no transaction_reference
+         * and payment method is not cash_on_delivery or wallet.
+         */
+        // if ($request->order_status == 'delivered' && $order['transaction_reference'] == null && !in_array($order['payment_method'],['cash_on_delivery','wallet'])) {
+        //     Toastr::warning(translate('messages.add_your_paymen_ref_first'));
+        //     return back();
+        // }
 
         if ($request->order_status == 'delivered') {
 

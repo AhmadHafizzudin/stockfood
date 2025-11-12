@@ -986,6 +986,8 @@ class VendorController extends Controller
         $restaurant->opening_time = $request->opening_time;
         $restaurant->closeing_time = $request->closeing_time;
         $restaurant->delivery_time =$request->minimum_delivery_time .'-'. $request->maximum_delivery_time.'-'.$request->delivery_time_type;
+
+        
         if ($request->menu == "veg") {
             $restaurant->veg = 1;
             $restaurant->non_veg = 0;

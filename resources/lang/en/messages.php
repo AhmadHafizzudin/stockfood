@@ -6974,4 +6974,6 @@
   'The configured Delivery Service (Grab/Lalamove) is triggered to handle pickup and delivery via callback URL and secret key.' => 'The configured Delivery Service (Grab/Lalamove) is triggered to handle pickup and delivery via callback URL and secret key.',
   'The callback url field is required when status is 1.' => 'The callback url field is required when status is 1.',
   'add_your_paymen_ref_first' => 'Add your paymen ref first',
+  'order_verification_code' => 'Order verification code',
+  'The per km delivery charge must be between 1 and 999999999999.99.' => 'The per km delivery charge must be between 1 and 999999999999.99.',
 );

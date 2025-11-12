@@ -116,12 +116,15 @@ class LalamoveController extends Controller
             if ($result['success']) {
                 $data = $result['data']['data'] ?? $result['data'];
                 
+                $pb = $data['priceBreakdown'] ?? [];
                 return response()->json([
                     'success' => true,
                     'message' => 'Test quotation successful',
                     'quotation_id' => $data['quotationId'] ?? null,
-                    'total' => $data['priceBreakdown']['total'] ?? null,
-                    'currency' => $data['priceBreakdown']['currency'] ?? null,
+                    'total' => $pb['total'] ?? null,
+                    'total_exclude_priority_fee' => $pb['totalExcludePriorityFee'] ?? (($pb['total'] ?? null) !== null ? (($pb['total'] ?? 0) - ($pb['priorityFee'] ?? 0)) : null),
+                    'priority_fee' => $pb['priorityFee'] ?? 0,
+                    'currency' => $pb['currency'] ?? null,
                     'stops' => $data['stops'] ?? [],
                     'full_response' => $result['data']
                 ]);
@@ -341,9 +344,13 @@ class LalamoveController extends Controller
             'headers' => [
                 'authorization' => $request->header('Authorization'),
                 'market' => $request->header('Market'),
+                'content_type' => $request->header('Content-Type'),
                 'timestamp' => $request->header('X-Request-Timestamp') ?? $request->header('X-Timestamp'),
             ],
-            'body' => $request->all(),
+            // Capture both parsed JSON and raw body for diagnostics (handles cases where body is not JSON)
+            'body_json' => $request->all(),
+            'body_raw' => $request->getContent(),
+            'query' => $request->query(),
         ]);
 
         $payload = $request->all();
@@ -356,7 +363,11 @@ class LalamoveController extends Controller
 
         $status = $data['status']
             ?? ($data['order']['status'] ?? null)
-            ?? ($data['event'] ?? null);
+            ?? null;
+
+        $eventType = $payload['event']
+            ?? ($data['event'] ?? null)
+            ?? ($payload['type'] ?? null);
 
         if (!$lalamoveOrderId) {
             Log::warning('Lalamove webhook missing orderId', ['payload' => $payload]);
@@ -371,45 +382,134 @@ class LalamoveController extends Controller
 
         $newStatus = null;
         $statusNorm = is_string($status) ? strtolower($status) : '';
+        $eventNorm = is_string($eventType) ? strtoupper($eventType) : '';
 
-        // Conservative mapping to local statuses
-        switch ($statusNorm) {
-            // Driver assigned / job accepted → mark out_for_delivery
-            case 'accepted':
-            case 'order_accepted':
-            case 'driver_assigned':
-            case 'assigning_driver':
-            case 'ongoing':
-                $newStatus = 'out_for_delivery';
+        // Handle documented event types first
+        switch ($eventNorm) {
+            case 'ORDER_STATUS_CHANGED':
+                // Defer to status mapping below
                 break;
-            // Pickup event
-            case 'picked_up':
-            case 'order_picked_up':
-            case 'driver_picked_up':
-                $newStatus = 'picked_up';
+            case 'DRIVER_ASSIGNED':
+                // Prefer internal 'accepted' to align with queries and dashboards
+                $newStatus = 'accepted';
                 break;
-            // Completed/delivered
-            case 'completed':
-            case 'delivered':
-                $newStatus = 'delivered';
+            case 'ORDER_AMOUNT_CHANGED':
+                // Update delivery charge figures if provided in payload
+                $pb = $data['priceBreakdown'] ?? ($data['order']['priceBreakdown'] ?? null);
+                if (is_array($pb)) {
+                    $currency = $pb['currency'] ?? null;
+                    $priorityFee = $pb['priorityFee'] ?? 0;
+                    $total = $pb['total'] ?? null;
+                    $totalExcl = $pb['totalExcludePriorityFee'] ?? null;
+                    $newCharge = null;
+                    if (is_numeric($totalExcl)) {
+                        $newCharge = (float)$totalExcl;
+                    } elseif (is_numeric($total) && is_numeric($priorityFee)) {
+                        $newCharge = (float)$total - (float)$priorityFee;
+                    } elseif (is_numeric($total)) {
+                        $newCharge = (float)$total;
+                    }
+                    if ($newCharge !== null) {
+                        // Update delivery charge while keeping original for reporting when possible
+                        try {
+                            $order->original_delivery_charge = $order->original_delivery_charge ?: $order->delivery_charge;
+                        } catch (\Throwable $e) {
+                            // ignore if column is missing
+                        }
+                        $order->delivery_charge = $newCharge;
+                        $order->save();
+                        Log::info('Order delivery charge updated via Lalamove webhook', [
+                            'order_id' => $order->id,
+                            'lalamove_order_id' => $lalamoveOrderId,
+                            'currency' => $currency,
+                            'new_delivery_charge' => $newCharge,
+                        ]);
+                    } else {
+                        Log::info('ORDER_AMOUNT_CHANGED without parseable amount', ['payload' => $payload]);
+                    }
+                } else {
+                    Log::info('ORDER_AMOUNT_CHANGED without priceBreakdown', ['payload' => $payload]);
+                }
                 break;
-            // Cancellation
-            case 'canceled':
-            case 'cancelled':
-            case 'order_cancelled':
-                $newStatus = 'canceled';
+            case 'ORDER_REPLACED':
+                // Replace stored Lalamove order ID with the new one
+                $newOrderId = $data['newOrderId']
+                    ?? ($data['order']['newOrderId'] ?? null)
+                    ?? ($data['order']['orderId'] ?? null);
+                if ($newOrderId) {
+                    $oldOrderId = $lalamoveOrderId;
+                    $order->lalamove_order_id = $newOrderId;
+                    $order->save();
+                    Log::info('Lalamove order ID replaced', [
+                        'order_id' => $order->id,
+                        'old_lalamove_order_id' => $oldOrderId,
+                        'new_lalamove_order_id' => $newOrderId,
+                    ]);
+                } else {
+                    Log::warning('ORDER_REPLACED missing newOrderId', ['payload' => $payload]);
+                }
+                break;
+            case 'WALLET_BALANCE_CHANGED':
+            case 'ORDER_EDITED':
+                // Informational for now; no direct order mutation
+                Log::info('Lalamove event received', [
+                    'event' => $eventNorm,
+                    'lalamove_order_id' => $lalamoveOrderId,
+                ]);
                 break;
             default:
-                // Unknown/unsupported status. Do not change, just acknowledge.
-                Log::info('Lalamove webhook unhandled status', [
-                    'lalamove_order_id' => $lalamoveOrderId,
-                    'status' => $status,
-                    'payload' => $payload,
-                ]);
+                // If event is absent or unknown, we will attempt status mapping below
+                if (!empty($eventNorm)) {
+                    Log::info('Unhandled Lalamove event type', [
+                        'event' => $eventNorm,
+                        'lalamove_order_id' => $lalamoveOrderId,
+                    ]);
+                }
+        }
+
+        // If no event-driven status set, map by status string when available
+        if (!$newStatus && $statusNorm) {
+            switch ($statusNorm) {
+                case 'accepted':
+                case 'order_accepted':
+                case 'driver_assigned':
+                    $newStatus = 'accepted';
+                    break;
+                case 'assigning_driver':
+                case 'ongoing':
+                    $newStatus = 'out_for_delivery';
+                    break;
+                case 'picked_up':
+                case 'order_picked_up':
+                case 'driver_picked_up':
+                    $newStatus = 'picked_up';
+                    break;
+                case 'completed':
+                case 'delivered':
+                    $newStatus = 'delivered';
+                    break;
+                case 'canceled':
+                case 'cancelled':
+                case 'order_cancelled':
+                    $newStatus = 'canceled';
+                    break;
+                default:
+                    Log::info('Lalamove webhook unhandled status', [
+                        'lalamove_order_id' => $lalamoveOrderId,
+                        'status' => $status,
+                        'payload' => $payload,
+                    ]);
+            }
         }
 
         if ($newStatus) {
+            // Update main status and timestamp column if exists (e.g., picked_up, delivered, canceled)
             $order->order_status = $newStatus;
+            try {
+                $order->{$newStatus} = now();
+            } catch (\Throwable $e) {
+                // Silently ignore if column doesn't exist for this status name
+            }
             $order->save();
             Log::info('Order status updated via Lalamove webhook', [
                 'order_id' => $order->id,
@@ -421,7 +521,81 @@ class LalamoveController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Webhook processed',
+            'event' => $eventNorm,
             'updated_status' => $newStatus,
         ], 200);
+    }
+
+    /**
+     * Mock: manually set order status for testing admin/Vendor flows.
+     * Accepts either `order_id` or `lalamove_order_id`, and a `status` value.
+     */
+    public function mockStatus(Request $request): JsonResponse
+    {
+        $status = strtolower((string) $request->input('status'));
+        $orderId = $request->input('order_id');
+        $llOrderId = $request->input('lalamove_order_id');
+
+        if (!$status) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing status. Provide one of: accepted, handover, out_for_delivery, picked_up, delivered, canceled'
+            ], 422);
+        }
+
+        // Find order by provided identifier
+        $order = null;
+        if ($orderId) {
+            $order = Order::find($orderId);
+        } elseif ($llOrderId) {
+            $order = Order::where('lalamove_order_id', $llOrderId)->first();
+        }
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found by order_id or lalamove_order_id'
+            ], 404);
+        }
+
+        // Normalize common aliases
+        $aliases = [
+            'accepted' => 'accepted',
+            'handover' => 'handover',
+            'out_for_delivery' => 'out_for_delivery',
+            'picked_up' => 'picked_up',
+            'delivered' => 'delivered',
+            'canceled' => 'canceled',
+            'cancelled' => 'canceled',
+        ];
+        $normalized = $aliases[$status] ?? null;
+        if (!$normalized) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unsupported status value'
+            ], 422);
+        }
+
+        $order->order_status = $normalized;
+        try {
+            $order->{$normalized} = now();
+        } catch (\Throwable $e) {
+            // ignore if no column
+        }
+        $order->save();
+
+        Log::info('Mock status set for order', [
+            'order_id' => $order->id,
+            'lalamove_order_id' => $order->lalamove_order_id,
+            'new_status' => $normalized,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order status updated',
+            'order_id' => $order->id,
+            'lalamove_order_id' => $order->lalamove_order_id,
+            'status' => $normalized,
+        ]);
     }
 }
