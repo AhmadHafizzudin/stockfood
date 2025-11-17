@@ -41,6 +41,7 @@ use App\Http\Controllers\Controller;
 use App\Models\OfflinePaymentMethod;
 use App\Models\SubscriptionSchedule;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Validator;
 use MatanYadaev\EloquentSpatial\Objects\Point;
 
@@ -1943,6 +1944,24 @@ class OrderController extends Controller
                                         $order->lalamove_order_id = $lm;
                                         $order->save();
                                         \Log::info('Lalamove order created on place_order', ['order_id' => $order->id, 'lalamove_order_id' => $lm]);
+
+                                        // Mirror payload to testing webhook if configured
+                                        if ($forwardUrl = config('lalamove.forward_webhook_url')) {
+                                            try {
+                                                Http::withHeaders(['Content-Type' => 'application/json'])
+                                                    ->post($forwardUrl, [
+                                                        'source' => 'stackfood-mirror',
+                                                        'app_order_id' => $order->id,
+                                                        'lalamove_order_id' => $lm,
+                                                        'quotation_id' => $quotationId ?? null,
+                                                        'stops' => $stops ?? [],
+                                                        'order_payload' => $orderPayload,
+                                                        'create_response' => $create['data'] ?? null,
+                                                    ]);
+                                            } catch (\Throwable $e) {
+                                                \Log::warning('Forward webhook failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+                                            }
+                                        }
                                     } else {
                                         \Log::warning('Lalamove create order missing orderId on place_order', ['order_id' => $order->id, 'response' => $create]);
                                     }

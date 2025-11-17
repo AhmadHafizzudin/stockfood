@@ -85,9 +85,9 @@ class LalamoveE2EOrder extends Command
                     'IOI Mall Puchong, Bandar Puchong Jaya, 47100 Puchong, Selangor, Malaysia'
                 );
                 $dropoff = $service->formatStop(
-                    3.0109,
-                    101.6179,
-                    'Bandar Puteri Puchong, 47100 Puchong, Selangor, Malaysia'
+                    3.1175,
+                    101.6770,
+                    'Mid Valley Megamall, Lingkaran Syed Putra, 59200 Kuala Lumpur, Malaysia'
                 );
                 $quotationPayload = $service->formatQuotationData($serviceType, [$pickup, $dropoff], 'en_MY');
             }
@@ -107,7 +107,9 @@ class LalamoveE2EOrder extends Command
             $totalExcludePriorityFee = isset($pb['totalExcludePriorityFee']) ? (float)$pb['totalExcludePriorityFee'] : null;
             $total = isset($pb['total']) ? (float)$pb['total'] : null;
             $effectiveTotal = $totalExcludePriorityFee ?? ($total !== null ? ($total - $priorityFee) : null);
-            $this->info("Quotation OK: ID={$quotationId}, totalExclPriority={$effectiveTotal} {$currency} (raw total={$total}, priorityFee={$priorityFee})");
+        $this->info("Quotation OK: ID={$quotationId}, totalExclPriority={$effectiveTotal} {$currency} (raw total={$total}, priorityFee={$priorityFee})");
+        // The price for Lalamove here
+        $this->info("Lalamove price: {$effectiveTotal} {$currency}");
 
             if (!$quotationId) {
                 $this->error('Quotation ID missing; cannot proceed to order creation.');

@@ -190,9 +190,15 @@ class LalamoveService
         $response = $this->makeRequest('POST', $path, $payload);
 
         if ($response->successful()) {
+            $json = $response->json();
+            // Forward mirror to testing webhook if configured
+            $this->forwardMirror('order.create', [
+                'request' => $payload,
+                'response' => $json,
+            ]);
             return [
                 'success' => true,
-                'data' => $response->json()
+                'data' => $json
             ];
         }
 
@@ -201,6 +207,32 @@ class LalamoveService
             'error' => $response->json(),
             'status' => $response->status()
         ];
+    }
+
+    /**
+     * Forward/mirror Lalamove payloads to a testing webhook for verification.
+     */
+    protected function forwardMirror(string $event, array $data): void
+    {
+        $forwardUrl = config('lalamove.forward_webhook_url');
+        if (!$forwardUrl) return;
+        try {
+            Http::withHeaders(['Content-Type' => 'application/json'])
+                ->post($forwardUrl, [
+                    'event' => $event,
+                    'lalamove' => $data,
+                    'meta' => [
+                        'app' => 'stackfood',
+                        'ts' => now()->toISOString(),
+                        'env' => app()->environment(),
+                    ],
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Lalamove forward webhook failed', [
+                'event' => $event,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

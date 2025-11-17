@@ -19,6 +19,8 @@ return [
     'market' => env('LALAMOVE_MARKET', 'MY_KUL'),
     // Default webhook points to provided webhook.site URL; override via env
     'webhook_url' => env('LALAMOVE_WEBHOOK_URL', 'https://webhook.site/e3f46283-3586-464b-9bd8-41e31744b55f'),
+    // Optional: forward/mirror payloads to a testing webhook on order creation
+    'forward_webhook_url' => env('LALAMOVE_FORWARD_WEBHOOK_URL', 'https://webhook.site/319e07fc-7410-4e91-862a-ae48769d9eeb'),
 
     /*
     |--------------------------------------------------------------------------
