@@ -52,11 +52,7 @@ $app->singleton(
 |
 */
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-if (!str_starts_with($requestUri, '/image-proxy')){
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: *');
-header('Access-Control-Allow-Headers: *');
+// CORS headers are handled by Laravel's Fruitcake\Cors middleware
+// to ensure a single, correct Access-Control-Allow-Origin value.
 
 return $app;
