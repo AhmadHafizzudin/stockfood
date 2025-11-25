@@ -19,3 +19,4 @@ docker/
 /docker-local
 /storage
 /public/storage
+composer.lock
